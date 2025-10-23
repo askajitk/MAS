@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}Items - {{ service.name }} | {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h2>Items for {{ service.name }}{% if service.name == 'Other' %} ({{ service.other_name }}){% endif %}</h2>
+    </div>
+    <div class="col-md-4 text-end">
+        <a href="{% url 'item_create' service.pk %}" class="btn btn-success">Add Item</a>
+        <a href="{% url 'service_list' %}" class="btn btn-secondary">Back to Services</a>
+    </div>
+</div>
+
+<div class="row">
+    {% for item in items %}
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title h5 mb-0">{{ item.name }}</h3>
+            </div>
+            <div class="card-body">
+                <h6>Makes:</h6>
+                <ul class="list-unstyled mb-3">
+                    {% for make in item.makes.all %}
+                    <li>{{ make.name }}</li>
+                    {% empty %}
+                    <li>No makes added yet.</li>
+                    {% endfor %}
+                </ul>
+                <div class="btn-group">
+                    <a href="{% url 'item_edit' item.pk %}" class="btn btn-warning">Edit</a>
+                    <a href="{% url 'item_delete' item.pk %}" class="btn btn-danger">Delete</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12">
+        <p>No items found for this service.</p>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

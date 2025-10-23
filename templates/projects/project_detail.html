@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block title %}{{ project.name }} | {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h2>{{ project.name }}</h2>
+        <p class="text-muted">Project #{{ project.project_number }}</p>
+    </div>
+    <div class="col-md-4 text-end">
+        <div class="btn-group">
+            <a href="{% url 'project_edit' project.pk %}" class="btn btn-warning">Edit Project</a>
+            <a href="{% url 'project_list' %}" class="btn btn-secondary">Back to Projects</a>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Buildings Section -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h3 class="card-title h5 mb-0">Buildings</h3>
+                <a href="{% url 'building_create' project.pk %}" class="btn btn-sm btn-success">Add Building</a>
+            </div>
+            <div class="card-body">
+                <ul class="list-group">
+                    {% for building in buildings %}
+                    <li class="list-group-item">{{ building.name }}</li>
+                    {% empty %}
+                    <li class="list-group-item">No buildings added yet.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Team Members Section -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h3 class="card-title h5 mb-0">Team Members</h3>
+                <a href="{% url 'team_member_add' project.pk %}" class="btn btn-sm btn-success">Add Member</a>
+            </div>
+            <div class="card-body">
+                <ul class="list-group">
+                    {% for member in team_members %}
+                    <li class="list-group-item">
+                        {{ member.user.get_full_name|default:member.user.username }}
+                        <br>
+                        <small class="text-muted">{{ member.user.department }}{% if member.user.department == 'Other' %} ({{ member.user.other_department }}){% endif %}</small>
+                    </li>
+                    {% empty %}
+                    <li class="list-group-item">No team members added yet.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Vendors Section -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h3 class="card-title h5 mb-0">Vendors</h3>
+                <a href="{% url 'vendor_add' project.pk %}" class="btn btn-sm btn-success">Add Vendor</a>
+            </div>
+            <div class="card-body">
+                <ul class="list-group">
+                    {% for vendor in vendors %}
+                    <li class="list-group-item">{{ vendor.user.get_full_name|default:vendor.user.username }}</li>
+                    {% empty %}
+                    <li class="list-group-item">No vendors added yet.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

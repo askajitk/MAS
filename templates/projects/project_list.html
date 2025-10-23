@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block title %}Projects | {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h2>Projects</h2>
+    </div>
+    <div class="col-md-4 text-end">
+        <a href="{% url 'project_create' %}" class="btn btn-success">Create Project</a>
+    </div>
+</div>
+
+<div class="row">
+    {% for project in projects %}
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title h5 mb-0">{{ project.name }}</h3>
+                <small class="text-muted">Project #{{ project.project_number }}</small>
+            </div>
+            <div class="card-body">
+                <h6>Buildings:</h6>
+                <ul class="list-unstyled mb-3">
+                    {% for building in project.buildings.all %}
+                    <li>{{ building.name }}</li>
+                    {% empty %}
+                    <li>No buildings added yet.</li>
+                    {% endfor %}
+                </ul>
+                <a href="{% url 'project_detail' project.pk %}" class="btn btn-primary">View Details</a>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12">
+        <p>No projects found.</p>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

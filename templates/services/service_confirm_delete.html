@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block title %}Delete Service | {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-6 offset-md-3">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title h5 mb-0">Delete Service</h3>
+            </div>
+            <div class="card-body">
+                <p>Are you sure you want to delete the service "{{ service.name }}{% if service.name == 'Other' %} ({{ service.other_name }}){% endif %}"?</p>
+                <p class="text-danger">This will also delete all associated items and makes.</p>
+                <form method="post">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                    <a href="{% url 'service_list' %}" class="btn btn-secondary">Cancel</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

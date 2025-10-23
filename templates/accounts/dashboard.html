@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard | {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12 mb-4">
+        <h2>Welcome, {{ user.get_full_name|default:user.username }}</h2>
+        <p>Department: {{ user.department }}{% if user.department == 'Other' %} ({{ user.other_department }}){% endif %}</p>
+        <p>Level: {{ user.level }}</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h3 class="card-title h5 mb-0">Your Projects</h3>
+            </div>
+            <div class="card-body">
+                <a href="{% url 'project_list' %}" class="btn btn-primary">View Projects</a>
+                {% if user.is_staff %}
+                    <a href="{% url 'project_create' %}" class="btn btn-success">Create Project</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    {% if user.is_staff %}
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h3 class="card-title h5 mb-0">Services Management</h3>
+            </div>
+            <div class="card-body">
+                <a href="{% url 'service_list' %}" class="btn btn-primary">Manage Services</a>
+                <a href="{% url 'service_log' %}" class="btn btn-info">View Service Logs</a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

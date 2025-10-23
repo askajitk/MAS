@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}Sign Up | {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="mb-0">Sign Up</h3>
+            </div>
+            <div class="card-body">
+                <form method="post" id="signup-form">
+                    {% csrf_token %}
+                    {{ form|crispy }}
+                    <button type="submit" class="btn btn-primary">Sign Up</button>
+                    <a href="{% url 'login' %}" class="btn btn-link">Already have an account? Login</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        const departmentField = $('#id_department');
+        const otherDepartmentField = $('#div_id_other_department');
+
+        function toggleOtherDepartment() {
+            if (departmentField.val() === 'Other') {
+                otherDepartmentField.show();
+            } else {
+                otherDepartmentField.hide();
+            }
+        }
+
+        // Initial state
+        toggleOtherDepartment();
+
+        // On change
+        departmentField.change(toggleOtherDepartment);
+    });
+</script>
+{% endblock %}

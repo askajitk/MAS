@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}{{ title }} | {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title h5 mb-0">{{ title }}</h3>
+            </div>
+            <div class="card-body">
+                <form method="post" id="project-form">
+                    {% csrf_token %}
+                    {{ form|crispy }}
+                    <button type="submit" class="btn btn-primary">Save</button>
+                    <a href="{% if project %}{% url 'project_detail' project.pk %}{% else %}{% url 'project_list' %}{% endif %}" class="btn btn-secondary">Cancel</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        const projectNameField = $('#id_name');
+        const projectNumberField = $('#id_project_number');
+
+        projectNameField.on('input', function() {
+            const query = $(this).val();
+            if (query.length >= 2) {
+                $.getJSON("{% url 'search_projects' %}", { term: query }, function(data) {
+                    if (data.results.length > 0) {
+                        projectNameField.addClass('is-invalid');
+                        if (!projectNameField.next('.invalid-feedback').length) {
+                            projectNameField.after('<div class="invalid-feedback">This project name already exists.</div>');
+                        }
+                    } else {
+                        projectNameField.removeClass('is-invalid');
+                        projectNameField.next('.invalid-feedback').remove();
+                    }
+                });
+            }
+        });
+    });
+</script>
+{% endblock %}

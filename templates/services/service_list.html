@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block title %}Services | {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h2>Services</h2>
+    </div>
+    <div class="col-md-4 text-end">
+        <a href="{% url 'service_create' %}" class="btn btn-success">Add Service</a>
+    </div>
+</div>
+
+<div class="row">
+    {% for service in services %}
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title h5 mb-0">{{ service.name }}{% if service.name == 'Other' %} ({{ service.other_name }}){% endif %}</h3>
+            </div>
+            <div class="card-body">
+                <div class="btn-group">
+                    <a href="{% url 'item_list' service.pk %}" class="btn btn-primary">View Items</a>
+                    <a href="{% url 'service_edit' service.pk %}" class="btn btn-warning">Edit</a>
+                    <a href="{% url 'service_delete' service.pk %}" class="btn btn-danger">Delete</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12">
+        <p>No services found.</p>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
