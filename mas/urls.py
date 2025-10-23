@@ -19,12 +19,14 @@ from django.contrib import admin
 from django.urls import path, include
 from django.contrib.auth import views as auth_views
 from accounts.views import SignUpView, dashboard
+from django.conf import settings
+from django.conf.urls.static import static
 
 urlpatterns = [
     path('', dashboard, name='dashboard'),
     path('admin/', admin.site.urls),
-    path('accounts/', include('django.contrib.auth.urls')),
-    path('accounts/signup/', SignUpView.as_view(), name='signup'),
+    path('accounts/', include('accounts.urls', namespace='accounts')),
     path('services/', include('services.urls')),
     path('projects/', include('projects.urls')),
-]
+    path('mas/', include('mas_sheets.urls', namespace='mas_sheets')),
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

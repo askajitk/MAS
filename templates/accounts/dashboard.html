@@ -7,26 +7,110 @@
     <div class="col-md-12 mb-4">
         <h2>Welcome, {{ user.get_full_name|default:user.username }}</h2>
         <p>Department: {{ user.department }}{% if user.department == 'Other' %} ({{ user.other_department }}){% endif %}</p>
-        <p>Level: {{ user.level }}</p>
+        <p>User Type: {{ user.user_type }}</p>
     </div>
 </div>
 
 <div class="row">
+    {% if user.user_type == 'Vendor' %}
+    <!-- Vendor Dashboard - MAS Submissions -->
+    <div class="col-md-12">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h3 class="card-title h5 mb-0">Your MAS Submissions</h3>
+            </div>
+            <div class="card-body">
+                <a href="{% url 'mas_sheets:mas_list' %}" class="btn btn-primary mb-3">View All MAS</a>
+                <a href="{% url 'mas_sheets:mas_create' %}" class="btn btn-success mb-3">Create New MAS</a>
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>MAS ID</th>
+                                <th>Rev</th>
+                                <th>Project</th>
+                                <th>Building</th>
+                                <th>Service</th>
+                                <th>Item</th>
+                                <th>Status</th>
+                                <th>Updated</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for mas in mas_list %}
+                            <tr>
+                                <td>{{ mas.mas_id }}</td>
+                                <td>{{ mas.revision }}</td>
+                                <td>{{ mas.project.name }}</td>
+                                <td>{{ mas.building.name }}</td>
+                                <td>{{ mas.service.name }}</td>
+                                <td>{{ mas.item.name }}</td>
+                                <td>
+                                    {% if mas.status == 'pending_review' %}
+                                        <span class="badge bg-warning">Pending Review</span>
+                                    {% elif mas.status == 'pending_approval' %}
+                                        <span class="badge bg-info">Pending Approval</span>
+                                    {% elif mas.status == 'approved' %}
+                                        <span class="badge bg-success">Approved</span>
+                                    {% elif mas.status == 'rejected' %}
+                                        <span class="badge bg-danger">Rejected</span>
+                                    {% elif mas.status == 'revision_requested' %}
+                                        <span class="badge bg-warning">Revision Requested</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ mas.updated_at|date:"d/m/Y" }}</td>
+                                <td>
+                                    {% if mas.status == 'pending_review' %}
+                                        <a href="{% url 'mas_sheets:mas_edit' mas.pk %}" class="btn btn-sm btn-primary">Edit</a>
+                                    {% elif mas.status == 'rejected' or mas.status == 'revision_requested' %}
+                                        <a href="{% url 'mas_sheets:mas_revision' mas.pk %}" class="btn btn-sm btn-warning">Submit Revision</a>
+                                    {% endif %}
+                                    {% if mas.attachment %}
+                                        <a href="{{ mas.attachment.url }}" class="btn btn-sm btn-info" target="_blank">View File</a>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="9" class="text-center">No MAS entries found.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% elif user.user_type == 'Team' %}
+    <!-- Team Dashboard - MAS Review/Approval -->
+    <div class="col-md-12">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h3 class="card-title h5 mb-0">Your Assigned Buildings & MAS</h3>
+            </div>
+            <div class="card-body">
+                <a href="{% url 'mas_sheets:mas_list' %}" class="btn btn-primary mb-3">View All MAS</a>
+                <p class="mt-2">
+                    Review and approve MAS submissions for buildings where you are assigned as Reviewer or Approver.
+                </p>
+            </div>
+        </div>
+    </div>
+    {% elif user.user_type == 'Admin' %}
+    <!-- Admin Dashboard - Full Management -->
     <div class="col-md-6">
         <div class="card mb-4">
             <div class="card-header">
-                <h3 class="card-title h5 mb-0">Your Projects</h3>
+                <h3 class="card-title h5 mb-0">Projects Management</h3>
             </div>
             <div class="card-body">
                 <a href="{% url 'project_list' %}" class="btn btn-primary">View Projects</a>
-                {% if user.is_staff %}
-                    <a href="{% url 'project_create' %}" class="btn btn-success">Create Project</a>
-                {% endif %}
+                <a href="{% url 'project_create' %}" class="btn btn-success">Create Project</a>
             </div>
         </div>
     </div>
 
-    {% if user.is_staff %}
     <div class="col-md-6">
         <div class="card mb-4">
             <div class="card-header">
@@ -35,6 +119,17 @@
             <div class="card-body">
                 <a href="{% url 'service_list' %}" class="btn btn-primary">Manage Services</a>
                 <a href="{% url 'service_log' %}" class="btn btn-info">View Service Logs</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h3 class="card-title h5 mb-0">MAS Management</h3>
+            </div>
+            <div class="card-body">
+                <a href="{% url 'mas_sheets:mas_list' %}" class="btn btn-primary">View All MAS</a>
             </div>
         </div>
     </div>

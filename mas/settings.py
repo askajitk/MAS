@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     "accounts",
     "services",
     "projects",
+    "mas_sheets",
 ]
 
 MIDDLEWARE = [
@@ -134,11 +135,18 @@ AUTH_USER_MODEL = 'accounts.CustomUser'
 CRISPY_TEMPLATE_PACK = "bootstrap4"
 
 # Authentication settings
-LOGIN_REDIRECT_URL = "dashboard"
-LOGIN_URL = "login"
+LOGIN_REDIRECT_URL = "accounts:dashboard"
+LOGIN_URL = "accounts:login"
 
 # Session settings
 SESSION_COOKIE_AGE = 60 * 60 * 24 * 30  # 30 days
 
 # Static files configuration
 STATICFILES_DIRS = [BASE_DIR / "static"]
+
+# Media files configuration
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
+# Maximum file upload size (5MB)
+MAX_UPLOAD_SIZE = 5242880  # 5MB in bytes

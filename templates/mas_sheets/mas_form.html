@@ -1,0 +1,199 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}{{ mas|yesno:"Edit,Create" }} MAS | {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-header">
+                    <h2>{{ mas|yesno:"Edit,Create" }} MAS</h2>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data" id="masForm">
+                        {% csrf_token %}
+                        
+                        <div class="form-group">
+                            {{ form.project|as_crispy_field }}
+                        </div>
+                        
+                        <div class="form-group">
+                            {{ form.building|as_crispy_field }}
+                        </div>
+                        
+                        <div class="form-group">
+                            {{ form.service|as_crispy_field }}
+                        </div>
+                        
+                        <div class="form-group">
+                            {{ form.item|as_crispy_field }}
+                        </div>
+                        
+                        <div class="form-group">
+                            {{ form.make_choices|as_crispy_field }}
+                        </div>
+                        
+                        <div class="form-group" id="otherMakeGroup" style="display: none;">
+                            {{ form.other_make|as_crispy_field }}
+                        </div>
+                        
+                        <div class="form-group">
+                            {{ form.attachment|as_crispy_field }}
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary">Save</button>
+                        <a href="{% url 'mas_sheets:mas_list' %}" class="btn btn-secondary">Cancel</a>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // Initialize Select2 on all select fields for searchable dropdowns
+        $('#id_project').select2({
+            placeholder: 'Select a project',
+            allowClear: true
+        });
+        
+        $('#id_building').select2({
+            placeholder: 'Select a building',
+            allowClear: true
+        });
+        
+        $('#id_service').select2({
+            placeholder: 'Select a service',
+            allowClear: true
+        });
+        
+        $('#id_item').select2({
+            placeholder: 'Select an item',
+            allowClear: true
+        });
+        
+        $('#id_make_choices').select2({
+            placeholder: 'Select a make',
+            allowClear: true
+        });
+        
+        // Project change handler
+        $("#id_project").change(function() {
+            var projectId = $(this).val();
+            if (projectId) {
+                // Load buildings
+                $.ajax({
+                    url: "{% url 'mas_sheets:ajax_load_buildings' %}",
+                    data: { 'project': projectId },
+                    success: function(data) {
+                        $("#id_building").html('<option value="">---------</option>');
+                        data.forEach(function(item) {
+                            $("#id_building").append(
+                                $('<option></option>').val(item.id).html(item.name)
+                            );
+                        });
+                        $('#id_building').trigger('change.select2'); // Notify Select2 of changes
+                    }
+                });
+                
+                // Load services
+                $.ajax({
+                    url: "{% url 'mas_sheets:ajax_load_services' %}",
+                    data: { 'project': projectId },
+                    success: function(data) {
+                        $("#id_service").html('<option value="">---------</option>');
+                        data.forEach(function(item) {
+                            $("#id_service").append(
+                                $('<option></option>').val(item.id).html(item.name)
+                            );
+                        });
+                        $('#id_service').trigger('change.select2'); // Notify Select2 of changes
+                    }
+                });
+                
+                // Clear dependent fields
+                $("#id_item").html('<option value="">---------</option>');
+                $('#id_item').trigger('change.select2');
+                $("#id_make_choices").html('<option value="">---------</option>');
+                $('#id_make_choices').trigger('change.select2');
+            }
+        });
+        
+        // Service change handler
+        $("#id_service").change(function() {
+            var serviceId = $(this).val();
+            if (serviceId) {
+                $.ajax({
+                    url: "{% url 'mas_sheets:ajax_load_items' %}",
+                    data: { 'service': serviceId },
+                    success: function(data) {
+                        $("#id_item").html('<option value="">---------</option>');
+                        data.forEach(function(item) {
+                            $("#id_item").append(
+                                $('<option></option>').val(item.id).html(item.name)
+                            );
+                        });
+                        $('#id_item').trigger('change.select2'); // Notify Select2 of changes
+                    }
+                });
+                // Clear make choices
+                $("#id_make_choices").html('<option value="">---------</option>');
+                $('#id_make_choices').trigger('change.select2');
+            }
+        });
+        
+        // Item change handler
+        $("#id_item").change(function() {
+            var itemId = $(this).val();
+            if (itemId) {
+                $.ajax({
+                    url: "{% url 'mas_sheets:ajax_load_makes' %}",
+                    data: { 'item': itemId },
+                    success: function(data) {
+                        $("#id_make_choices").html('<option value="">---------</option>');
+                        data.forEach(function(item) {
+                            $("#id_make_choices").append(
+                                $('<option></option>').val(item.id).html(item.name)
+                            );
+                        });
+                        $('#id_make_choices').trigger('change.select2'); // Notify Select2 of changes
+                    }
+                });
+            } else {
+                // Clear make choices if no item selected
+                $("#id_make_choices").html('<option value="">---------</option>');
+                $('#id_make_choices').trigger('change.select2');
+            }
+        });
+        
+        // Make choices change handler
+        $("#id_make_choices").change(function() {
+            if ($(this).val() === 'other') {
+                $("#otherMakeGroup").show();
+            } else {
+                $("#otherMakeGroup").hide();
+                $("#id_other_make").val('');
+            }
+        });
+        
+        // Show other make field if it was previously selected
+        if ($("#id_make_choices").val() === 'other') {
+            $("#otherMakeGroup").show();
+        }
+        
+        // Trigger change events for pre-selected values on page load
+        // This handles the case where service is pre-selected for vendors
+        // Check if service has a value but items dropdown is empty
+        var serviceVal = $("#id_service").val();
+        if (serviceVal && $("#id_item option").length <= 1) {
+            // Service is selected but items not loaded, trigger load
+            $("#id_service").trigger('change');
+        }
+    });
+</script>
+{% endblock %}

@@ -24,6 +24,10 @@ def project_list(request):
 
 @login_required
 def project_create(request):
+    # Only Admin users can create projects
+    if not (request.user.user_type == 'Admin'):
+        return HttpResponseForbidden('Only Admin users may create projects.')
+
     if request.method == 'POST':
         form = ProjectForm(request.POST)
         if form.is_valid():
@@ -43,21 +47,38 @@ def project_create(request):
 
 @login_required
 def project_detail(request, pk):
+    from .models import BuildingRole
     project = get_object_or_404(Project, pk=pk)
     buildings = project.buildings.all()
-    team_members = project.team_members.all()
-    vendors = project.vendors.all()
+    team_members = project.team_members.select_related('user').prefetch_related(
+        'user__buildingrole_set__building'
+    ).all()
+    vendors = project.vendors.select_related('user', 'building').prefetch_related('services').all()
+    
+    # Create a mapping of user to their building roles for this project
+    team_member_roles = {}
+    for member in team_members:
+        roles = BuildingRole.objects.filter(
+            user=member.user,
+            building__project=project
+        ).select_related('building')
+        team_member_roles[member.id] = list(roles)
     
     return render(request, 'projects/project_detail.html', {
         'project': project,
         'buildings': buildings,
         'team_members': team_members,
+        'team_member_roles': team_member_roles,
         'vendors': vendors
     })
 
 @login_required
 def project_edit(request, pk):
     project = get_object_or_404(Project, pk=pk)
+    # Only Admin users can edit projects
+    if not (request.user.user_type == 'Admin'):
+        return HttpResponseForbidden('Only Admin users may edit projects.')
+
     if request.method == 'POST':
         form = ProjectForm(request.POST, instance=project)
         if form.is_valid():
@@ -76,6 +97,10 @@ def project_edit(request, pk):
 @login_required
 def building_create(request, project_pk):
     project = get_object_or_404(Project, pk=project_pk)
+    # Only Admin users can add buildings
+    if not (request.user.user_type == 'Admin'):
+        return HttpResponseForbidden('Only Admin users may add buildings.')
+
     if request.method == 'POST':
         form = BuildingForm(request.POST)
         if form.is_valid():
@@ -96,13 +121,31 @@ def building_create(request, project_pk):
 @login_required
 def team_member_add(request, project_pk):
     project = get_object_or_404(Project, pk=project_pk)
+    # Only Admin users can add team members
+    if not (request.user.user_type == 'Admin'):
+        return HttpResponseForbidden('Only Admin users may add team members.')
+
     if request.method == 'POST':
         form = ProjectTeamMemberForm(request.POST)
         if form.is_valid():
             team_member = form.save(commit=False)
             team_member.project = project
             team_member.save()
-            messages.success(request, 'Team member added successfully.')
+            
+            # Create BuildingRole if building and role are provided
+            building = form.cleaned_data.get('building')
+            role = form.cleaned_data.get('role')
+            if building and role:
+                from .models import BuildingRole
+                BuildingRole.objects.get_or_create(
+                    building=building,
+                    user=team_member.user,
+                    role=role
+                )
+                messages.success(request, f'Team member added and assigned as {role} for {building.name}.')
+            else:
+                messages.success(request, 'Team member added successfully.')
+            
             return redirect('project_detail', pk=project.pk)
     else:
         form = ProjectTeamMemberForm(initial={'project': project})
@@ -118,10 +161,10 @@ def team_member_add(request, project_pk):
 def team_member_delete(request, project_pk, member_pk):
     project = get_object_or_404(Project, pk=project_pk)
     member = get_object_or_404(ProjectTeamMember, pk=member_pk, project=project)
-    # Permission: only staff, Admins, or the user themself may remove the association
-    is_admin_role = getattr(request.user, 'level', None) == 'Admin'
+    # Permission: only Admins or project owner may remove the association
+    is_admin = request.user.user_type == 'Admin'
     is_owner = project.owner == request.user
-    if not (request.user.is_staff or is_admin_role or is_owner or request.user == member.user):
+    if not (is_admin or is_owner or request.user == member.user):
         return HttpResponseForbidden('You do not have permission to remove this team member.')
 
     if request.method == 'POST':
@@ -137,12 +180,21 @@ def team_member_delete(request, project_pk, member_pk):
 @login_required
 def vendor_add(request, project_pk):
     project = get_object_or_404(Project, pk=project_pk)
+    # Only Admin users can add vendors to projects
+    if not (request.user.user_type == 'Admin'):
+        return HttpResponseForbidden('Only Admin users may add vendors to projects.')
+
     if request.method == 'POST':
         form = ProjectVendorForm(request.POST)
         if form.is_valid():
             vendor = form.save(commit=False)
             vendor.project = project
             vendor.save()
+            # Save many-to-many services from form if provided
+            if hasattr(form, 'cleaned_data') and 'services' in form.cleaned_data:
+                services = form.cleaned_data.get('services')
+                if services:
+                    vendor.services.set(services)
             messages.success(request, 'Vendor added successfully.')
             return redirect('project_detail', pk=project.pk)
     else:
@@ -159,10 +211,10 @@ def vendor_add(request, project_pk):
 def vendor_delete(request, project_pk, vendor_pk):
     project = get_object_or_404(Project, pk=project_pk)
     vendor = get_object_or_404(ProjectVendor, pk=vendor_pk, project=project)
-    # Permission: only staff, Admins, or the vendor user themself may remove the association
-    is_admin_role = getattr(request.user, 'level', None) == 'Admin'
+    # Permission: only Admins or project owner may remove the association
+    is_admin = request.user.user_type == 'Admin'
     is_owner = project.owner == request.user
-    if not (request.user.is_staff or is_admin_role or is_owner or request.user == vendor.user):
+    if not (is_admin or is_owner or request.user == vendor.user):
         return HttpResponseForbidden('You do not have permission to remove this vendor.')
 
     if request.method == 'POST':

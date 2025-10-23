@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+{% load mas_extras %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Left side - MAS Details and Approval Form -->
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h4>Final Approval: {{ mas.mas_id }} ({{ mas.revision }})</h4>
+                </div>
+                <div class="card-body">
+                    <div class="mb-4">
+                        <h5>Submission Details</h5>
+                        <dl class="row">
+                            <dt class="col-sm-4">Project:</dt>
+                            <dd class="col-sm-8">{{ mas.project.project_number }} - {{ mas.project.name }}</dd>
+                            
+                            <dt class="col-sm-4">Building:</dt>
+                            <dd class="col-sm-8">{{ mas.building.name }}</dd>
+                            
+                            <dt class="col-sm-4">Service:</dt>
+                            <dd class="col-sm-8">{{ mas.service.name }}</dd>
+                            
+                            <dt class="col-sm-4">Item:</dt>
+                            <dd class="col-sm-8">{{ mas.item.name }}</dd>
+                            
+                            <dt class="col-sm-4">Make:</dt>
+                            <dd class="col-sm-8">{{ mas.make }}</dd>
+                            
+                            <dt class="col-sm-4">Submitted by:</dt>
+                            <dd class="col-sm-8">{{ mas.creator.get_full_name }}</dd>
+                            
+                            <dt class="col-sm-4">Reviewed by:</dt>
+                            <dd class="col-sm-8">{{ mas.reviewer.get_full_name }}</dd>
+                            
+                            <dt class="col-sm-4">Review Date:</dt>
+                            <dd class="col-sm-8">{{ mas.review_date|date:"d/m/Y H:i" }}</dd>
+                            
+                            {% if mas.review_comment %}
+                            <dt class="col-sm-4">Review Comments:</dt>
+                            <dd class="col-sm-8">{{ mas.review_comment }}</dd>
+                            {% endif %}
+                        </dl>
+                    </div>
+
+                    <form method="post" class="mt-4">
+                        {% csrf_token %}
+                        <div class="form-group">
+                            <label for="comment">Approval Comments</label>
+                            <textarea name="comment" id="comment" rows="4" class="form-control"></textarea>
+                        </div>
+                        
+                        <div class="btn-group mt-3" role="group">
+                            <button type="submit" name="action" value="approve" class="btn btn-success">
+                                Approve
+                            </button>
+                            <button type="submit" name="action" value="reject" class="btn btn-danger">
+                                Reject
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Right side - Document Preview -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h4>Document Preview</h4>
+                </div>
+                <div class="card-body">
+                    <div class="document-preview">
+                        {% if mas.attachment.url|lower|endswith:'.pdf' %}
+                            <embed src="{{ mas.attachment.url }}" type="application/pdf" width="100%" height="600px">
+                        {% else %}
+                            <img src="{{ mas.attachment.url }}" alt="MAS Document" class="img-fluid">
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Require comment for reject
+    document.querySelectorAll('button[name="action"]').forEach(button => {
+        button.addEventListener('click', function(e) {
+            if (this.value === 'reject' && !document.getElementById('comment').value.trim()) {
+                e.preventDefault();
+                alert('Please provide a comment for rejection.');
+            }
+        });
+    });
+</script>
+{% endblock %}

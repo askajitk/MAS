@@ -231,7 +231,7 @@
                     
                     <div class="form-buttons">
                         <button type="submit" class="btn btn-primary" id="submit-btn" disabled>Create Account</button>
-                        <a href="{% url 'login' %}" class="btn btn-link">Already have an account? Login</a>
+                        <a href="{% url 'accounts:login' %}" class="btn btn-link">Already have an account? Login</a>
                     </div>
                 </form>
             </div>
@@ -244,6 +244,46 @@
 <script>
     $(document).ready(function() {
         const departmentField = $('#id_department');
+        const usernameField = $('#id_username');
+        let usernameTimer = null;
+        
+        // Function to check username availability
+        function checkUsername() {
+            const username = usernameField.val().trim();
+            if (username) {
+                $.getJSON('{% url "accounts:check_username" %}', { username: username })
+                    .done(function(data) {
+                        const feedback = usernameField.next('.username-feedback');
+                        if (feedback.length === 0) {
+                            usernameField.after('<div class="username-feedback"></div>');
+                        }
+                        usernameField.next('.username-feedback')
+                            .removeClass('valid-feedback invalid-feedback')
+                            .addClass(data.available ? 'valid-feedback' : 'invalid-feedback')
+                            .text(data.message)
+                            .show();
+                            
+                        // Add or remove is-valid/is-invalid classes from the input
+                        usernameField
+                            .removeClass('is-valid is-invalid')
+                            .addClass(data.available ? 'is-valid' : 'is-invalid');
+                            
+                        // Update submit button state
+                        validateForm();
+                    });
+            } else {
+                usernameField
+                    .removeClass('is-valid is-invalid')
+                    .next('.username-feedback').hide();
+                validateForm();
+            }
+        }
+        
+        // Debounce username check
+        usernameField.on('input', function() {
+            clearTimeout(usernameTimer);
+            usernameTimer = setTimeout(checkUsername, 500);
+        });
         const otherDepartmentField = $('#div_id_other_department');
         const password1Field = $('#id_password1');
         const password2Field = $('#id_password2');
@@ -258,10 +298,18 @@
             match: (pwd, confirm) => pwd === confirm && pwd.length > 0
         };
 
-        function validatePassword() {
+        // Function to validate the entire form
+        function validateForm() {
             const password = password1Field.val();
             const confirmPassword = password2Field.val();
             let allValid = true;
+            
+            // Check username validity
+            if (usernameField.hasClass('is-invalid') || !usernameField.val().trim()) {
+                allValid = false;
+            }
+            
+            // Continue with password validation
 
             // Length requirement
             const lengthValid = validations.length(password);
@@ -305,14 +353,14 @@
             }
         }
 
-        // Initial state
-        toggleOtherDepartment();
-        validatePassword();
+    // Initial state
+    toggleOtherDepartment();
+    validateForm();
 
-        // Event listeners
-        departmentField.change(toggleOtherDepartment);
-        password1Field.on('input', validatePassword);
-        password2Field.on('input', validatePassword);
+    // Event listeners
+    departmentField.change(toggleOtherDepartment);
+    password1Field.on('input', validateForm);
+    password2Field.on('input', validateForm);
 
         // Prevent form submission if passwords don't meet requirements
         $('#signup-form').on('submit', function(e) {

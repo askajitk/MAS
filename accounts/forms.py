@@ -6,7 +6,7 @@ from crispy_forms.helper import FormHelper
 
 class CustomUserCreationForm(UserCreationForm):
     email = forms.EmailField(required=True)
-    level = forms.ChoiceField(choices=get_user_model().LEVEL_CHOICES, required=True)
+    user_type = forms.ChoiceField(choices=get_user_model().USER_TYPE_CHOICES, required=True)
     department = forms.ChoiceField(choices=get_user_model().DEPARTMENT_CHOICES)
     other_department = forms.CharField(max_length=100, required=False)
 
@@ -20,7 +20,7 @@ class CustomUserCreationForm(UserCreationForm):
 
     class Meta:
         model = get_user_model()
-        fields = ['username', 'email', 'password1', 'password2', 'department', 'other_department', 'level']
+        fields = ['username', 'email', 'password1', 'password2', 'department', 'other_department', 'user_type']
 
     def clean(self):
         cleaned_data = super().clean()

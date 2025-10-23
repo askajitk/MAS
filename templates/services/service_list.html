@@ -8,29 +8,74 @@
         <h2>Services</h2>
     </div>
     <div class="col-md-4 text-end">
-        <a href="{% url 'service_create' %}" class="btn btn-success">Add Service</a>
+        <div class="btn-group">
+            <a href="{% url 'service_create' %}" class="btn btn-success">Add Service</a>
+            <a href="{% url 'service_log' %}" class="btn btn-info">View Log</a>
+        </div>
     </div>
 </div>
 
 <div class="row">
     {% for service in services %}
     <div class="col-md-6 mb-4">
-        <div class="card">
-            <div class="card-header">
-                <h3 class="card-title h5 mb-0">{{ service.name }}{% if service.name == 'Other' %} ({{ service.other_name }}){% endif %}</h3>
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h3 class="card-title h5 mb-0">
+                    {{ service.name }}
+                    {% if service.name == 'Other' %}
+                        <small class="text-muted">({{ service.other_name }})</small>
+                    {% endif %}
+                </h3>
+                <span class="badge bg-primary">{{ service.items.count }} Items</span>
             </div>
             <div class="card-body">
-                <div class="btn-group">
-                    <a href="{% url 'item_list' service.pk %}" class="btn btn-primary">View Items</a>
-                    <a href="{% url 'service_edit' service.pk %}" class="btn btn-warning">Edit</a>
-                    <a href="{% url 'service_delete' service.pk %}" class="btn btn-danger">Delete</a>
+                <div class="mb-3">
+                    <small class="text-muted">
+                        Created: {{ service.created_at|date:"M d, Y" }}
+                        {% if service.updated_at != service.created_at %}
+                        <br>Last updated: {{ service.updated_at|date:"M d, Y" }}
+                        {% endif %}
+                    </small>
+                </div>
+                {% if service.items.exists %}
+                <div class="mb-3">
+                    <h6>Recent Items:</h6>
+                    <ul class="list-unstyled">
+                        {% for item in service.items.all|slice:":3" %}
+                        <li>
+                            {{ item.name }}
+                            {% if item.makes.exists %}
+                            <small class="text-muted">({{ item.makes.count }} makes)</small>
+                            {% endif %}
+                        </li>
+                        {% endfor %}
+                        {% if service.items.count > 3 %}
+                        <li><small class="text-muted">and {{ service.items.count|add:"-3" }} more...</small></li>
+                        {% endif %}
+                    </ul>
+                </div>
+                {% endif %}
+            </div>
+            <div class="card-footer bg-transparent">
+                <div class="btn-group w-100">
+                    <a href="{% url 'item_list' service.pk %}" class="btn btn-primary">
+                        <i class="fas fa-list"></i> Items
+                    </a>
+                    <a href="{% url 'service_edit' service.pk %}" class="btn btn-warning">
+                        <i class="fas fa-edit"></i> Edit
+                    </a>
+                    <a href="{% url 'service_delete' service.pk %}" class="btn btn-danger">
+                        <i class="fas fa-trash"></i> Delete
+                    </a>
                 </div>
             </div>
         </div>
     </div>
     {% empty %}
     <div class="col-12">
-        <p>No services found.</p>
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle"></i> No services found. Click "Add Service" to create one.
+        </div>
     </div>
     {% endfor %}
 </div>

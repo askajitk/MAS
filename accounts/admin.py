@@ -10,13 +10,14 @@ class CustomUserChangeForm(UserChangeForm):
 class CustomUserAdmin(UserAdmin):
     form = CustomUserChangeForm
     model = CustomUser
-    list_display = ['username', 'email', 'department', 'level', 'is_staff']
-    list_filter = ['department', 'level', 'is_staff']
+    list_display = ['username', 'email', 'department', 'user_type', 'is_staff']
+    list_filter = ['department', 'user_type', 'is_staff']
+    search_fields = ['username', 'email', 'first_name', 'last_name']
     fieldsets = UserAdmin.fieldsets + (
-        ('Additional Information', {'fields': ('department', 'other_department', 'level')}),
+        ('Additional Information', {'fields': ('department', 'other_department', 'user_type')}),
     )
     add_fieldsets = UserAdmin.add_fieldsets + (
-        ('Additional Information', {'fields': ('department', 'other_department', 'level')}),
+        ('Additional Information', {'fields': ('department', 'other_department', 'user_type')}),
     )
 
 admin.site.register(CustomUser, CustomUserAdmin)

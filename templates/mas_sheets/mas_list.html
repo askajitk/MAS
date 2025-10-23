@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+
+{% block title %}MAS List | {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>MAS List</h2>
+        {% if user.user_type == 'Vendor' %}
+        <a href="{% url 'mas_sheets:mas_create' %}" class="btn btn-primary">Create MAS</a>
+        {% endif %}
+    </div>
+    
+    <!-- Status Filter -->
+    <div class="mb-4">
+        <div class="btn-group" role="group" aria-label="MAS Status Filter">
+            <a href="?status=pending" class="btn btn-outline-primary {% if status_filter == 'pending' %}active{% endif %}">
+                Pending
+            </a>
+            <a href="?status=approved" class="btn btn-outline-success {% if status_filter == 'approved' %}active{% endif %}">
+                Approved
+            </a>
+            <a href="?status=rejected" class="btn btn-outline-danger {% if status_filter == 'rejected' %}active{% endif %}">
+                Rejected
+            </a>
+        </div>
+    </div>
+    
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>MAS ID</th>
+                    <th>Rev</th>
+                    <th>Project</th>
+                    <th>Building</th>
+                    <th>Service</th>
+                    <th>Item</th>
+                    <th>Make</th>
+                    <th>Status</th>
+                    <th>Last Updated</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for mas in mas_list %}
+                <tr>
+                    <td>{{ mas.mas_id }}</td>
+                    <td>{{ mas.revision }}</td>
+                    <td>{{ mas.project.name }}</td>
+                    <td>{{ mas.building.name }}</td>
+                    <td>{{ mas.service.name }}</td>
+                    <td>{{ mas.item.name }}</td>
+                    <td>{{ mas.make }}</td>
+                    <td>
+                        {% if mas.status == 'pending_review' %}
+                            <span class="badge bg-warning">Pending Review</span>
+                        {% elif mas.status == 'pending_approval' %}
+                            <span class="badge bg-info">Pending Approval</span>
+                        {% elif mas.status == 'approved' %}
+                            <span class="badge bg-success">Approved</span>
+                        {% elif mas.status == 'rejected' %}
+                            <span class="badge bg-danger">Rejected</span>
+                        {% elif mas.status == 'revision_requested' %}
+                            <span class="badge bg-warning">Revision Requested</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ mas.updated_at|date:"d/m/Y H:i" }}</td>
+                    <td>
+                        {% if user.user_type == 'Vendor' %}
+                            {% if mas.status == 'pending_review' %}
+                                <a href="{% url 'mas_sheets:mas_edit' mas.pk %}" class="btn btn-sm btn-primary">Edit</a>
+                            {% elif mas.status == 'rejected' or mas.status == 'revision_requested' %}
+                                <a href="{% url 'mas_sheets:mas_revision' mas.pk %}" class="btn btn-sm btn-warning">Submit Revision</a>
+                            {% endif %}
+                        {% elif user.user_type == 'Team' %}
+                            {% if mas.status == 'pending_review' %}
+                                <a href="{% url 'mas_sheets:review_mas' mas.pk %}" class="btn btn-sm btn-primary">Review</a>
+                            {% elif mas.status == 'pending_approval' %}
+                                <a href="{% url 'mas_sheets:approve_mas' mas.pk %}" class="btn btn-sm btn-success">Approve</a>
+                            {% endif %}
+                        {% endif %}
+                        {% if mas.attachment %}
+                            <a href="{{ mas.attachment.url }}" class="btn btn-sm btn-info" target="_blank">View File</a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="10" class="text-center">No MAS entries found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

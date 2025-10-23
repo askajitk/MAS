@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load project_extras %}
 
 {% block title %}{{ project.name }} | {{ block.super }}{% endblock %}
 
@@ -48,13 +49,27 @@
                     {% for member in team_members %}
                     <li class="list-group-item">
                         <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                {{ member.user.get_full_name|default:member.user.username }}
+                            <div class="flex-grow-1">
+                                <strong>{{ member.user.get_full_name|default:member.user.username }}</strong>
                                 <br>
-                                <small class="text-muted">{{ member.user.department }}{% if member.user.department == 'Other' %} ({{ member.user.other_department }}){% endif %}</small>
+                                <small class="text-muted">
+                                    User Type: {{ member.user.user_type }}
+                                    {% if member.user.department %}
+                                    | {{ member.user.department }}{% if member.user.department == 'Other' %} ({{ member.user.other_department }}){% endif %}
+                                    {% endif %}
+                                </small>
+                                {% if team_member_roles|get_item:member.id %}
+                                <br>
+                                <small class="text-info">
+                                    <strong>Assignments:</strong>
+                                    {% for role in team_member_roles|get_item:member.id %}
+                                    <span class="badge bg-primary">{{ role.building.name }} - {{ role.role }}</span>
+                                    {% endfor %}
+                                </small>
+                                {% endif %}
                             </div>
                             <div>
-                                {% if request.user.is_staff or request.user.level == 'Admin' or request.user == member.user %}
+                                {% if request.user.is_staff or request.user.user_type == 'Admin' or request.user == member.user %}
                                 <form method="post" action="{% url 'team_member_delete' project.pk member.pk %}" style="display:inline-block;">
                                     {% csrf_token %}
                                     <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Remove this team member?');">Remove</button>
@@ -83,9 +98,28 @@
                     {% for vendor in vendors %}
                     <li class="list-group-item">
                         <div class="d-flex justify-content-between align-items-center">
-                            <div>{{ vendor.user.get_full_name|default:vendor.user.username }}</div>
+                            <div class="flex-grow-1">
+                                <strong>{{ vendor.user.get_full_name|default:vendor.user.username }}</strong>
+                                <br>
+                                <small class="text-muted">
+                                    {% if vendor.building %}
+                                    <i class="bi bi-building"></i> Building: <strong>{{ vendor.building.name }}</strong>
+                                    {% else %}
+                                    <i class="bi bi-building"></i> Building: <span class="text-warning">Not assigned</span>
+                                    {% endif %}
+                                </small>
+                                {% if vendor.services.all %}
+                                <br>
+                                <small class="text-info">
+                                    <strong>Services:</strong>
+                                    {% for service in vendor.services.all %}
+                                    <span class="badge bg-success">{{ service.name }}</span>
+                                    {% endfor %}
+                                </small>
+                                {% endif %}
+                            </div>
                             <div>
-                                {% if request.user.is_staff or request.user.level == 'Admin' or request.user == vendor.user %}
+                                {% if request.user.is_staff or request.user.user_type == 'Admin' or request.user == vendor.user %}
                                 <form method="post" action="{% url 'vendor_delete' project.pk vendor.pk %}" style="display:inline-block;">
                                     {% csrf_token %}
                                     <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Remove this vendor?');">Remove</button>

@@ -2,43 +2,226 @@
 
 {% block title %}Service Logs | {{ block.super }}{% endblock %}
 
+{% block extra_css %}
+<style>
+    .filter-section {
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    .log-table th {
+        background-color: #f8f9fa;
+        position: sticky;
+        top: 0;
+        z-index: 1;
+    }
+    .log-entry {
+        transition: all 0.2s ease;
+    }
+    .log-entry:hover {
+        background-color: #f8f9fa;
+    }
+    .log-timestamp {
+        white-space: nowrap;
+    }
+    .log-user {
+        white-space: nowrap;
+    }
+    .log-action {
+        width: 100px;
+    }
+    .log-type {
+        width: 120px;
+    }
+    .log-details {
+        max-width: 400px;
+    }
+    .badge-outline {
+        background-color: transparent;
+        border: 1px solid;
+    }
+    .badge-outline.badge-success {
+        color: #198754;
+        border-color: #198754;
+    }
+    .badge-outline.badge-warning {
+        color: #ffc107;
+        border-color: #ffc107;
+    }
+    .badge-outline.badge-danger {
+        color: #dc3545;
+        border-color: #dc3545;
+    }
+    .table-container {
+        max-height: 600px;
+        overflow-y: auto;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="row mb-4">
-    <div class="col-12">
+    <div class="col-md-8">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'service_list' %}">Services</a></li>
+                <li class="breadcrumb-item active">Activity Logs</li>
+            </ol>
+        </nav>
         <h2>Service Activity Logs</h2>
+    </div>
+    <div class="col-md-4 text-end">
+        <a href="{% url 'service_list' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Services
+        </a>
     </div>
 </div>
 
-<div class="row">
-    <div class="col-12">
-        <div class="table-responsive">
-            <table class="table table-striped">
-                <thead>
-                    <tr>
-                        <th>Timestamp</th>
-                        <th>User</th>
-                        <th>Action</th>
-                        <th>Type</th>
-                        <th>Details</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for log in logs %}
-                    <tr>
-                        <td>{{ log.timestamp }}</td>
-                        <td>{{ log.user.get_full_name|default:log.user.username }}</td>
-                        <td><span class="badge bg-{% if log.action == 'CREATE' %}success{% elif log.action == 'UPDATE' %}warning{% else %}danger{% endif %}">{{ log.action }}</span></td>
-                        <td>{{ log.content_type }}</td>
-                        <td>{{ log.details }}</td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="5">No activity logs found.</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+<div class="filter-section">
+    <div class="row g-3">
+        <div class="col-md-4">
+            <div class="input-group">
+                <span class="input-group-text">
+                    <i class="fas fa-search"></i>
+                </span>
+                <input type="text" id="logSearch" class="form-control" placeholder="Search logs...">
+            </div>
+        </div>
+        <div class="col-md-3">
+            <select id="actionFilter" class="form-select">
+                <option value="">All Actions</option>
+                <option value="CREATE">Created</option>
+                <option value="UPDATE">Updated</option>
+                <option value="DELETE">Deleted</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <select id="typeFilter" class="form-select">
+                <option value="">All Types</option>
+                <option value="Service">Services</option>
+                <option value="Item">Items</option>
+                <option value="ItemMake">Makes</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <button id="clearFilters" class="btn btn-outline-secondary w-100">
+                <i class="fas fa-times"></i> Clear
+            </button>
         </div>
     </div>
 </div>
+
+<div class="table-container">
+    <table class="table table-hover log-table">
+        <thead>
+            <tr>
+                <th class="log-timestamp">Timestamp</th>
+                <th class="log-user">User</th>
+                <th class="log-action">Action</th>
+                <th class="log-type">Type</th>
+                <th class="log-details">Details</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for log in logs %}
+            <tr class="log-entry" 
+                data-action="{{ log.action }}"
+                data-type="{{ log.content_type }}"
+                data-search="{{ log.user.get_full_name|default:log.user.username|lower }} {{ log.details|lower }}">
+                <td class="log-timestamp">
+                    <div title="{{ log.timestamp }}">
+                        {{ log.timestamp|date:"M d, Y H:i" }}
+                    </div>
+                    <small class="text-muted">{{ log.timestamp|timesince }} ago</small>
+                </td>
+                <td class="log-user">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-user-circle me-2"></i>
+                        {{ log.user.get_full_name|default:log.user.username }}
+                    </div>
+                </td>
+                <td class="log-action">
+                    <span class="badge badge-outline badge-{% if log.action == 'CREATE' %}success{% elif log.action == 'UPDATE' %}warning{% else %}danger{% endif %}">
+                        {{ log.action }}
+                    </span>
+                </td>
+                <td class="log-type">
+                    <i class="fas {% if log.content_type == 'Service' %}fa-cogs{% elif log.content_type == 'Item' %}fa-box{% else %}fa-tag{% endif %} me-1"></i>
+                    {{ log.content_type }}
+                </td>
+                <td class="log-details">{{ log.details }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5" class="text-center py-4">
+                    <div class="text-muted">
+                        <i class="fas fa-info-circle fa-2x mb-2"></i>
+                        <p class="mb-0">No activity logs found.</p>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        const logSearch = $('#logSearch');
+        const actionFilter = $('#actionFilter');
+        const typeFilter = $('#typeFilter');
+        const clearFilters = $('#clearFilters');
+        const logEntries = $('.log-entry');
+
+        function filterLogs() {
+            const searchTerm = logSearch.val().toLowerCase();
+            const actionValue = actionFilter.val();
+            const typeValue = typeFilter.val();
+
+            logEntries.each(function() {
+                const $entry = $(this);
+                const matchesSearch = !searchTerm || $entry.data('search').includes(searchTerm);
+                const matchesAction = !actionValue || $entry.data('action') === actionValue;
+                const matchesType = !typeValue || $entry.data('type') === typeValue;
+
+                $entry.toggle(matchesSearch && matchesAction && matchesType);
+            });
+
+            updateEmptyState();
+        }
+
+        function updateEmptyState() {
+            const visibleEntries = $('.log-entry:visible').length;
+            const emptyState = `
+                <tr id="empty-state">
+                    <td colspan="5" class="text-center py-4">
+                        <div class="text-muted">
+                            <i class="fas fa-search fa-2x mb-2"></i>
+                            <p class="mb-0">No matching logs found.</p>
+                        </div>
+                    </td>
+                </tr>`;
+
+            $('#empty-state').remove();
+            if (visibleEntries === 0) {
+                $('tbody').append(emptyState);
+            }
+        }
+
+        function clearAllFilters() {
+            logSearch.val('');
+            actionFilter.val('');
+            typeFilter.val('');
+            filterLogs();
+        }
+
+        logSearch.on('keyup', filterLogs);
+        actionFilter.on('change', filterLogs);
+        typeFilter.on('change', filterLogs);
+        clearFilters.on('click', clearAllFilters);
+    });
+</script>
 {% endblock %}
