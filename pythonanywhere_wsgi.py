@@ -4,7 +4,7 @@ import os
 import sys
 
 # Add your project directory to the sys.path
-path = '/home/yourusername/MAS'
+path = '/home/askajitk/MAS'
 if path not in sys.path:
     sys.path.insert(0, path)
 
@@ -12,7 +12,7 @@ if path not in sys.path:
 os.environ['DJANGO_SETTINGS_MODULE'] = 'mas.settings'
 
 # Activate virtual environment
-virtualenv_path = '/home/yourusername/.virtualenvs/mas_env'
+virtualenv_path = '/home/askajitk/.virtualenvs/mas_env'
 activate_this = os.path.join(virtualenv_path, 'bin/activate_this.py')
 exec(open(activate_this).read(), {'__file__': activate_this})
 
