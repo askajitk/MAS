@@ -7,6 +7,7 @@ urlpatterns = [
     path('create/', views.mas_create, name='mas_create'),
     path('edit/<int:pk>/', views.mas_edit, name='mas_edit'),
     path('list/', views.mas_list, name='mas_list'),
+    path('history/', views.mas_history, name='mas_history'),
     path('review/<int:pk>/', views.review_mas, name='review_mas'),
     path('approve/<int:pk>/', views.approve_mas, name='approve_mas'),
     path('revision/<int:pk>/', views.mas_revision, name='mas_revision'),

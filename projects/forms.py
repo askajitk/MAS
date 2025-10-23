@@ -93,7 +93,8 @@ class ProjectVendorForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['user'].queryset = get_user_model().objects.filter(department='Vendor')
+        self.fields['user'].queryset = get_user_model().objects.filter(user_type='Vendor')
+        self.fields['user'].empty_label = "Select Vendor (create vendor users first if none available)"
         # If project is provided in initial data, limit building choices
         project = None
         if 'project' in self.initial and self.initial['project']:

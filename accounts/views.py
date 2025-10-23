@@ -20,6 +20,10 @@ class SignUpView(CreateView):
 def dashboard(request):
     context = {'user': request.user}
     
+    # If user is a Team member (Reviewer/Approver), redirect to MAS list
+    if request.user.user_type == 'Team':
+        return redirect('mas_sheets:mas_list')
+    
     # If user is a vendor, get their MAS list
     if request.user.user_type == 'Vendor':
         from mas_sheets.models import MAS

@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load mas_extras %}
 
 {% block title %}MAS List | {{ block.super }}{% endblock %}
 
@@ -11,16 +12,28 @@
         {% endif %}
     </div>
     
-    <!-- Status Filter -->
+    <!-- Status Filter Buttons -->
     <div class="mb-4">
         <div class="btn-group" role="group" aria-label="MAS Status Filter">
-            <a href="?status=pending" class="btn btn-outline-primary {% if status_filter == 'pending' %}active{% endif %}">
-                Pending
+            <a href="?status=pending" 
+               class="btn btn-outline-warning {% if status_filter == 'pending' %}active{% endif %}">
+                Pending (Reviewer)
             </a>
-            <a href="?status=approved" class="btn btn-outline-success {% if status_filter == 'approved' %}active{% endif %}">
+            {% if user.user_type == 'Team' %}
+            <a href="?status=pending_approval" 
+               class="btn btn-outline-info {% if status_filter == 'pending_approval' %}active{% endif %}">
+                Pending Approval (Approver)
+                {% if pending_approval_count > 0 %}
+                <span class="badge bg-dark">{{ pending_approval_count }}</span>
+                {% endif %}
+            </a>
+            {% endif %}
+            <a href="?status=approved" 
+               class="btn btn-outline-success {% if status_filter == 'approved' %}active{% endif %}">
                 Approved
             </a>
-            <a href="?status=rejected" class="btn btn-outline-danger {% if status_filter == 'rejected' %}active{% endif %}">
+            <a href="?status=rejected" 
+               class="btn btn-outline-danger {% if status_filter == 'rejected' %}active{% endif %}">
                 Rejected
             </a>
         </div>
@@ -74,9 +87,9 @@
                                 <a href="{% url 'mas_sheets:mas_revision' mas.pk %}" class="btn btn-sm btn-warning">Submit Revision</a>
                             {% endif %}
                         {% elif user.user_type == 'Team' %}
-                            {% if mas.status == 'pending_review' %}
+                            {% if mas.status == 'pending_review' and user|is_reviewer_for_building:mas.building %}
                                 <a href="{% url 'mas_sheets:review_mas' mas.pk %}" class="btn btn-sm btn-primary">Review</a>
-                            {% elif mas.status == 'pending_approval' %}
+                            {% elif mas.status == 'pending_approval' and user|is_approver_for_building:mas.building %}
                                 <a href="{% url 'mas_sheets:approve_mas' mas.pk %}" class="btn btn-sm btn-success">Approve</a>
                             {% endif %}
                         {% endif %}

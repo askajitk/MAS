@@ -46,16 +46,15 @@
                             <li class="nav-item">
                                 <a class="nav-link" href="{% url 'service_log' %}">Service Logs</a>
                             </li>
-                        {% endif %}
-                        
-                        {% if user.user_type == 'Vendor' %}
+                        {% elif user.user_type == 'Vendor' %}
                             <li class="nav-item">
                                 <a class="nav-link" href="{% url 'mas_sheets:mas_create' %}">Create MAS</a>
                             </li>
                         {% endif %}
                         
+                        <!-- MAS History link for all authenticated users -->
                         <li class="nav-item">
-                            <a class="nav-link" href="{% url 'mas_sheets:mas_list' %}">MAS List</a>
+                            <a class="nav-link" href="{% url 'mas_sheets:mas_history' %}">MAS History</a>
                         </li>
                     {% endif %}
                 </ul>

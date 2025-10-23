@@ -32,7 +32,7 @@
                             <dd class="col-sm-8">{{ mas.make }}</dd>
                             
                             <dt class="col-sm-4">Submitted by:</dt>
-                            <dd class="col-sm-8">{{ mas.creator.get_full_name }}</dd>
+                            <dd class="col-sm-8">{{ mas.creator.get_full_name|default:mas.creator.username }}</dd>
                             
                             <dt class="col-sm-4">Submission Date:</dt>
                             <dd class="col-sm-8">{{ mas.created_at|date:"d/m/Y H:i" }}</dd>
@@ -60,6 +60,63 @@
                     </form>
                 </div>
             </div>
+            
+            <!-- Revision History -->
+            {% if revision_history.count > 1 %}
+            <div class="card">
+                <div class="card-header">
+                    <h4>Revision History</h4>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>Rev</th>
+                                    <th>Date</th>
+                                    <th>Status</th>
+                                    <th>Reviewer</th>
+                                    <th>Review Comment</th>
+                                    <th>Approver</th>
+                                    <th>Approval Comment</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for rev in revision_history %}
+                                <tr {% if rev.is_latest %}class="table-primary"{% endif %}>
+                                    <td><strong>{{ rev.revision }}</strong></td>
+                                    <td>{{ rev.created_at|date:"d/m/Y H:i" }}</td>
+                                    <td>
+                                        {% if rev.status == 'pending_review' %}
+                                            <span class="badge bg-warning">Pending Review</span>
+                                        {% elif rev.status == 'pending_approval' %}
+                                            <span class="badge bg-info">Pending Approval</span>
+                                        {% elif rev.status == 'approved' %}
+                                            <span class="badge bg-success">Approved</span>
+                                        {% elif rev.status == 'rejected' %}
+                                            <span class="badge bg-danger">Rejected</span>
+                                        {% elif rev.status == 'revision_requested' %}
+                                            <span class="badge bg-warning">Revision Requested</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {{ rev.reviewer.get_full_name|default:"-" }}<br>
+                                        {% if rev.review_date %}<small class="text-muted">{{ rev.review_date|date:"d/m/Y H:i" }}</small>{% endif %}
+                                    </td>
+                                    <td><small>{{ rev.review_comment|default:"-" }}</small></td>
+                                    <td>
+                                        {{ rev.approver.get_full_name|default:"-" }}<br>
+                                        {% if rev.approval_date %}<small class="text-muted">{{ rev.approval_date|date:"d/m/Y H:i" }}</small>{% endif %}
+                                    </td>
+                                    <td><small>{{ rev.approval_comment|default:"-" }}</small></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
         </div>
         
         <!-- Right side - Document Preview -->
@@ -69,11 +126,37 @@
                     <h4>Document Preview</h4>
                 </div>
                 <div class="card-body">
-                    <div class="document-preview">
-                        {% if mas.attachment.url|lower|endswith:'.pdf' %}
-                            <embed src="{{ mas.attachment.url }}" type="application/pdf" width="100%" height="600px">
+                    <div class="document-preview" style="min-height: 600px;">
+                        {% if mas.attachment %}
+                            <div class="mb-3 p-3 bg-light border rounded">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <small class="text-muted">File: {{ mas.attachment.name }}</small>
+                                    </div>
+                                    <div>
+                                        <a href="{{ mas.attachment.url }}" target="_blank" class="btn btn-sm btn-primary me-2">
+                                            <i class="bi bi-box-arrow-up-right"></i> Open in New Tab
+                                        </a>
+                                        <a href="{{ mas.attachment.url }}" class="btn btn-sm btn-info" download>
+                                            <i class="bi bi-download"></i> Download
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                            {% if mas.attachment.url|lower|endswith:'.pdf' %}
+                                <div class="border rounded p-2 bg-white">
+                                    <embed src="{{ mas.attachment.url }}" type="application/pdf" width="100%" height="600px" />
+                                    <noscript>
+                                        <div class="alert alert-warning mt-2">
+                                            <p>Your browser cannot display the PDF. Please use the "Open in New Tab" button above.</p>
+                                        </div>
+                                    </noscript>
+                                </div>
+                            {% else %}
+                                <img src="{{ mas.attachment.url }}" alt="MAS Document" class="img-fluid" style="max-width: 100%; height: auto;">
+                            {% endif %}
                         {% else %}
-                            <img src="{{ mas.attachment.url }}" alt="MAS Document" class="img-fluid">
+                            <div class="alert alert-warning">No attachment available for this MAS.</div>
                         {% endif %}
                     </div>
                 </div>
