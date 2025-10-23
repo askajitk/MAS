@@ -2,6 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import JsonResponse
+from django.http import HttpResponseForbidden
 from django.db.models import Q
 from django.contrib.auth import get_user_model
 from .models import Project, Building, ProjectTeamMember, ProjectVendor
@@ -26,7 +27,10 @@ def project_create(request):
     if request.method == 'POST':
         form = ProjectForm(request.POST)
         if form.is_valid():
-            project = form.save()
+            project = form.save(commit=False)
+            # set the creating user as owner
+            project.owner = request.user
+            project.save()
             messages.success(request, 'Project created successfully.')
             return redirect('project_detail', pk=project.pk)
     else:
@@ -109,6 +113,27 @@ def team_member_add(request, project_pk):
         'title': 'Add Team Member'
     })
 
+
+@login_required
+def team_member_delete(request, project_pk, member_pk):
+    project = get_object_or_404(Project, pk=project_pk)
+    member = get_object_or_404(ProjectTeamMember, pk=member_pk, project=project)
+    # Permission: only staff, Admins, or the user themself may remove the association
+    is_admin_role = getattr(request.user, 'level', None) == 'Admin'
+    is_owner = project.owner == request.user
+    if not (request.user.is_staff or is_admin_role or is_owner or request.user == member.user):
+        return HttpResponseForbidden('You do not have permission to remove this team member.')
+
+    if request.method == 'POST':
+        member.delete()
+        messages.success(request, 'Team member removed successfully.')
+        return redirect('project_detail', pk=project.pk)
+    return render(request, 'projects/confirm_delete.html', {
+        'object': member,
+        'project': project,
+        'type': 'team member'
+    })
+
 @login_required
 def vendor_add(request, project_pk):
     project = get_object_or_404(Project, pk=project_pk)
@@ -127,6 +152,27 @@ def vendor_add(request, project_pk):
         'form': form,
         'project': project,
         'title': 'Add Vendor'
+    })
+
+
+@login_required
+def vendor_delete(request, project_pk, vendor_pk):
+    project = get_object_or_404(Project, pk=project_pk)
+    vendor = get_object_or_404(ProjectVendor, pk=vendor_pk, project=project)
+    # Permission: only staff, Admins, or the vendor user themself may remove the association
+    is_admin_role = getattr(request.user, 'level', None) == 'Admin'
+    is_owner = project.owner == request.user
+    if not (request.user.is_staff or is_admin_role or is_owner or request.user == vendor.user):
+        return HttpResponseForbidden('You do not have permission to remove this vendor.')
+
+    if request.method == 'POST':
+        vendor.delete()
+        messages.success(request, 'Vendor removed successfully.')
+        return redirect('project_detail', pk=project.pk)
+    return render(request, 'projects/confirm_delete.html', {
+        'object': vendor,
+        'project': project,
+        'type': 'vendor'
     })
 
 @login_required

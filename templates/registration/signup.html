@@ -3,19 +3,236 @@
 
 {% block title %}Sign Up | {{ block.super }}{% endblock %}
 
+{% block extra_css %}
+<style>
+    .signup-container {
+        min-height: 100vh;
+        background-color: #f8f9fa;
+        padding: 40px 0;
+    }
+
+    .signup-card {
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        border: none;
+        border-radius: 10px;
+        overflow: hidden;
+        max-width: 600px;
+        margin: 0 auto;
+    }
+
+    .signup-header {
+        background-color: #007bff;
+        color: white;
+        padding: 20px;
+        text-align: center;
+        border-bottom: none;
+    }
+
+    .signup-header h3 {
+        margin: 0;
+        font-size: 24px;
+        font-weight: 600;
+    }
+
+    .signup-body {
+        padding: 30px;
+        background-color: white;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-control {
+        border-radius: 6px;
+        border: 2px solid #e9ecef;
+        padding: 12px;
+        font-size: 16px;
+        transition: all 0.3s ease;
+    }
+
+    .form-control:focus {
+        border-color: #007bff;
+        box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.15);
+    }
+
+    .password-requirements {
+        background-color: #f8f9fa;
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+        padding: 15px;
+        margin-top: 8px;
+    }
+
+    .requirement {
+        display: flex;
+        align-items: center;
+        margin-bottom: 8px;
+        padding: 8px 12px;
+        border-radius: 6px;
+        background-color: white;
+        transition: all 0.3s ease;
+    }
+
+    .requirement:last-child {
+        margin-bottom: 0;
+    }
+
+    .requirement .icon {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        margin-right: 12px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-style: normal;
+        background-color: #e9ecef;
+        color: #6c757d;
+        transition: all 0.3s ease;
+    }
+
+    .requirement.valid {
+        background-color: #e8f5e9;
+        color: #1b5e20;
+    }
+
+    .requirement.invalid {
+        background-color: #ffebee;
+        color: #b71c1c;
+    }
+
+    .requirement.valid .icon {
+        background-color: #43a047;
+        color: white;
+    }
+
+    .requirement.invalid .icon {
+        background-color: #e53935;
+        color: white;
+    }
+
+    .requirement.valid .icon::after {
+        content: '✓';
+    }
+
+    .requirement.invalid .icon::after {
+        content: '×';
+    }
+
+    .requirement span {
+        font-size: 0.95rem;
+        font-weight: 500;
+    }
+
+    .btn-primary {
+        padding: 12px 24px;
+        font-size: 16px;
+        font-weight: 600;
+        border-radius: 6px;
+        background-color: #007bff;
+        border: none;
+        transition: all 0.3s ease;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+        background-color: #0056b3;
+        transform: translateY(-1px);
+    }
+
+    .btn-primary:disabled {
+        background-color: #b0b0b0;
+        cursor: not-allowed;
+    }
+
+    .btn-link {
+        font-size: 16px;
+        color: #007bff;
+        text-decoration: none;
+        padding: 12px 24px;
+        transition: all 0.3s ease;
+    }
+
+    .btn-link:hover {
+        color: #0056b3;
+        text-decoration: none;
+    }
+
+    .form-buttons {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 30px;
+    }
+
+    label {
+        font-weight: 500;
+        color: #495057;
+        margin-bottom: 8px;
+    }
+
+    .invalid-feedback {
+        color: #dc3545;
+        font-size: 0.875rem;
+        margin-top: 4px;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-8">
-        <div class="card">
-            <div class="card-header">
-                <h3 class="mb-0">Sign Up</h3>
+<div class="signup-container">
+    <div class="container">
+        <div class="signup-card">
+            <div class="signup-header">
+                <h3>Create Your Account</h3>
             </div>
-            <div class="card-body">
+            <div class="signup-body">
                 <form method="post" id="signup-form">
                     {% csrf_token %}
-                    {{ form|crispy }}
-                    <button type="submit" class="btn btn-primary">Sign Up</button>
-                    <a href="{% url 'login' %}" class="btn btn-link">Already have an account? Login</a>
+                    
+                    {% for field in form %}
+                        <div class="form-group">
+                            {{ field.label_tag }}
+                            {{ field }}
+                            {% if field.name == 'password1' %}
+                                <div class="password-requirements">
+                                    <ul class="list-unstyled mb-0">
+                                        <li class="requirement" id="length-req">
+                                            <i class="icon"></i>
+                                            <span>At least 8 characters</span>
+                                        </li>
+                                        <li class="requirement" id="uppercase-req">
+                                            <i class="icon"></i>
+                                            <span>One uppercase letter</span>
+                                        </li>
+                                        <li class="requirement" id="number-req">
+                                            <i class="icon"></i>
+                                            <span>One number</span>
+                                        </li>
+                                        <li class="requirement" id="symbol-req">
+                                            <i class="icon"></i>
+                                            <span>One symbol (!@#$%^&*(),.?":{}|<>)</span>
+                                        </li>
+                                        <li class="requirement" id="match-req">
+                                            <i class="icon"></i>
+                                            <span>Passwords match</span>
+                                        </li>
+                                    </ul>
+                                </div>
+                            {% endif %}
+                            {% if field.errors %}
+                                {% for error in field.errors %}
+                                    <div class="invalid-feedback d-block">{{ error }}</div>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                    
+                    <div class="form-buttons">
+                        <button type="submit" class="btn btn-primary" id="submit-btn" disabled>Create Account</button>
+                        <a href="{% url 'login' %}" class="btn btn-link">Already have an account? Login</a>
+                    </div>
                 </form>
             </div>
         </div>
@@ -28,6 +245,57 @@
     $(document).ready(function() {
         const departmentField = $('#id_department');
         const otherDepartmentField = $('#div_id_other_department');
+        const password1Field = $('#id_password1');
+        const password2Field = $('#id_password2');
+        const submitBtn = $('#submit-btn');
+
+        // Regular expressions for password validation
+        const validations = {
+            length: (pwd) => pwd.length >= 8,
+            uppercase: (pwd) => /[A-Z]/.test(pwd),
+            number: (pwd) => /[0-9]/.test(pwd),
+            symbol: (pwd) => /[!@#$%^&*(),.?":{}|<>]/.test(pwd),
+            match: (pwd, confirm) => pwd === confirm && pwd.length > 0
+        };
+
+        function validatePassword() {
+            const password = password1Field.val();
+            const confirmPassword = password2Field.val();
+            let allValid = true;
+
+            // Length requirement
+            const lengthValid = validations.length(password);
+            $('#length-req').toggleClass('valid', lengthValid)
+                          .toggleClass('invalid', password.length > 0 && !lengthValid);
+            allValid = allValid && lengthValid;
+
+            // Uppercase requirement
+            const upperValid = validations.uppercase(password);
+            $('#uppercase-req').toggleClass('valid', upperValid)
+                             .toggleClass('invalid', password.length > 0 && !upperValid);
+            allValid = allValid && upperValid;
+
+            // Number requirement
+            const numberValid = validations.number(password);
+            $('#number-req').toggleClass('valid', numberValid)
+                          .toggleClass('invalid', password.length > 0 && !numberValid);
+            allValid = allValid && numberValid;
+
+            // Symbol requirement
+            const symbolValid = validations.symbol(password);
+            $('#symbol-req').toggleClass('valid', symbolValid)
+                          .toggleClass('invalid', password.length > 0 && !symbolValid);
+            allValid = allValid && symbolValid;
+
+            // Match requirement
+            const matchValid = validations.match(password, confirmPassword);
+            $('#match-req').toggleClass('valid', matchValid)
+                         .toggleClass('invalid', (password.length > 0 || confirmPassword.length > 0) && !matchValid);
+            allValid = allValid && matchValid;
+
+            // Enable/disable submit button
+            submitBtn.prop('disabled', !allValid);
+        }
 
         function toggleOtherDepartment() {
             if (departmentField.val() === 'Other') {
@@ -39,9 +307,22 @@
 
         // Initial state
         toggleOtherDepartment();
+        validatePassword();
 
-        // On change
+        // Event listeners
         departmentField.change(toggleOtherDepartment);
+        password1Field.on('input', validatePassword);
+        password2Field.on('input', validatePassword);
+
+        // Prevent form submission if passwords don't meet requirements
+        $('#signup-form').on('submit', function(e) {
+            if (submitBtn.prop('disabled')) {
+                e.preventDefault();
+                alert('Please ensure your password meets all requirements.');
+                return false;
+            }
+            return true;
+        });
     });
 </script>
 {% endblock %}

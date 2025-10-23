@@ -1,0 +1,44 @@
+{% extends 'bootstrap4/uni_form.html' %}
+{% load crispy_forms_field %}
+
+{% block field_errors %}
+    {% if form_show_errors and field.errors %}
+        {% for error in field.errors %}
+            <p id="error_{{ forloop.counter }}_{{ field.auto_id }}" class="invalid-feedback"><strong>{{ error }}</strong></p>
+        {% endfor %}
+    {% endif %}
+{% endblock %}
+
+{% block field %}
+    {{ field }}
+    {% if field.name == "password1" %}
+        <div class="password-requirements mt-2" id="password-requirements">
+            <ul class="list-unstyled mb-0">
+                <li class="requirement" id="similar-req">
+                    <i class="fas"></i> Not similar to personal information
+                </li>
+                <li class="requirement" id="length-req">
+                    <i class="fas"></i> At least 8 characters
+                </li>
+                <li class="requirement" id="common-req">
+                    <i class="fas"></i> Not a commonly used password
+                </li>
+                <li class="requirement" id="numeric-req">
+                    <i class="fas"></i> Not entirely numeric
+                </li>
+                <li class="requirement" id="uppercase-req">
+                    <i class="fas"></i> Contains uppercase letter
+                </li>
+                <li class="requirement" id="number-req">
+                    <i class="fas"></i> Contains number
+                </li>
+                <li class="requirement" id="symbol-req">
+                    <i class="fas"></i> Contains symbol (!@#$%^&*(),.?":{}|<>)
+                </li>
+                <li class="requirement" id="match-req">
+                    <i class="fas"></i> Passwords match
+                </li>
+            </ul>
+        </div>
+    {% endif %}
+{% endblock %}

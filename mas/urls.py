@@ -17,14 +17,14 @@ Including another URLconf
 
 from django.contrib import admin
 from django.urls import path, include
-from django.contrib.auth.views import LoginView
+from django.contrib.auth import views as auth_views
 from accounts.views import SignUpView, dashboard
 
 urlpatterns = [
     path('', dashboard, name='dashboard'),
     path('admin/', admin.site.urls),
-    path('login/', LoginView.as_view(), name='login'),
-    path('signup/', SignUpView.as_view(), name='signup'),
+    path('accounts/', include('django.contrib.auth.urls')),
+    path('accounts/signup/', SignUpView.as_view(), name='signup'),
     path('services/', include('services.urls')),
     path('projects/', include('projects.urls')),
 ]

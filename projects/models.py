@@ -4,6 +4,7 @@ from django.contrib.auth import get_user_model
 class Project(models.Model):
     name = models.CharField(max_length=200, unique=True)
     project_number = models.CharField(max_length=100, unique=True)
+    owner = models.ForeignKey(get_user_model(), on_delete=models.SET_NULL, null=True, blank=True, related_name='owned_projects')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

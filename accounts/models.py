@@ -12,9 +12,15 @@ class CustomUser(AbstractUser):
         ('Other', 'Other'),
     ]
 
+    LEVEL_CHOICES = [
+        ('Admin', 'Admin'),
+        ('Creator', 'Creator'),
+        ('Approver', 'Approver'),
+    ]
+
     department = models.CharField(max_length=100, choices=DEPARTMENT_CHOICES)
     other_department = models.CharField(max_length=100, blank=True, null=True)
-    level = models.CharField(max_length=50)
+    level = models.CharField(max_length=50, choices=LEVEL_CHOICES)
 
     def save(self, *args, **kwargs):
         if self.department != 'Other':

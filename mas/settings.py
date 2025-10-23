@@ -25,7 +25,7 @@ SECRET_KEY = "django-insecure-f9nz^sjb_6urdl=6t(m2iv^067=yg67m)#aggwebuyxh$akyut
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '0.0.0.0']
 
 
 # Application definition
@@ -94,14 +94,14 @@ AUTH_PASSWORD_VALIDATORS = [
         "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
     },
     {
-        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
-    },
-    {
         "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
     },
     {
         "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
     },
+    {
+        "NAME": "accounts.validators.CustomPasswordValidator",
+    }
 ]
 
 
@@ -135,7 +135,7 @@ CRISPY_TEMPLATE_PACK = "bootstrap4"
 
 # Authentication settings
 LOGIN_REDIRECT_URL = "dashboard"
-LOGOUT_REDIRECT_URL = "login"
+LOGIN_URL = "login"
 
 # Session settings
 SESSION_COOKIE_AGE = 60 * 60 * 24 * 30  # 30 days
