@@ -1,0 +1,401 @@
+{% extends 'base.html' %}
+
+{% block title %}Analytics Dashboard | {{ block.super }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stat-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    .stat-card.success {
+        background: linear-gradient(135deg, #56ab2f 0%, #a8e063 100%);
+    }
+    .stat-card.warning {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    }
+    .stat-card.info {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    }
+    .stat-card.danger {
+        background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+    }
+    .stat-number {
+        font-size: 2.5rem;
+        font-weight: bold;
+        margin: 10px 0;
+    }
+    .stat-label {
+        font-size: 0.9rem;
+        opacity: 0.9;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    .chart-container {
+        position: relative;
+        height: 350px;
+        margin-bottom: 30px;
+    }
+    .chart-card {
+        background: white;
+        border-radius: 10px;
+        padding: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+    }
+    .chart-title {
+        font-size: 1.3rem;
+        font-weight: 600;
+        margin-bottom: 15px;
+        color: #333;
+    }
+    .performance-table {
+        font-size: 0.9rem;
+    }
+    .performance-table td {
+        padding: 8px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1><i class="bi bi-graph-up"></i> Analytics Dashboard</h1>
+        <small class="text-muted">Last updated: {{ request.user.username }} • {{ "now"|date:"d/m/Y H:i" }}</small>
+    </div>
+
+    <!-- Summary Statistics -->
+    <div class="row">
+        <div class="col-md-2 col-sm-6">
+            <div class="stat-card">
+                <div class="stat-label">Total MAS</div>
+                <div class="stat-number">{{ total_mas }}</div>
+                <i class="bi bi-file-earmark-text" style="font-size: 2rem; opacity: 0.3;"></i>
+            </div>
+        </div>
+        <div class="col-md-2 col-sm-6">
+            <div class="stat-card success">
+                <div class="stat-label">Approved</div>
+                <div class="stat-number">{{ approved_mas }}</div>
+                <i class="bi bi-check-circle" style="font-size: 2rem; opacity: 0.3;"></i>
+            </div>
+        </div>
+        <div class="col-md-2 col-sm-6">
+            <div class="stat-card info">
+                <div class="stat-label">Pending</div>
+                <div class="stat-number">{{ pending_mas }}</div>
+                <i class="bi bi-clock-history" style="font-size: 2rem; opacity: 0.3;"></i>
+            </div>
+        </div>
+        <div class="col-md-2 col-sm-6">
+            <div class="stat-card danger">
+                <div class="stat-label">Rejected</div>
+                <div class="stat-number">{{ rejected_mas }}</div>
+                <i class="bi bi-x-circle" style="font-size: 2rem; opacity: 0.3;"></i>
+            </div>
+        </div>
+        <div class="col-md-2 col-sm-6">
+            <div class="stat-card warning">
+                <div class="stat-label">Revisions</div>
+                <div class="stat-number">{{ total_revisions }}</div>
+                <i class="bi bi-arrow-repeat" style="font-size: 2rem; opacity: 0.3;"></i>
+            </div>
+        </div>
+        <div class="col-md-2 col-sm-6">
+            <div class="stat-card" style="background: linear-gradient(135deg, #ff6e7f 0%, #bfe9ff 100%);">
+                <div class="stat-label">Avg. Approval Time</div>
+                {% if avg_approval_time %}
+                <div class="stat-number" style="font-size: 1.5rem;">
+                    {{ avg_approval_time.days }}d {{ avg_approval_time.hours }}h
+                </div>
+                {% else %}
+                <div class="stat-number" style="font-size: 1.5rem;">N/A</div>
+                {% endif %}
+                <i class="bi bi-speedometer2" style="font-size: 2rem; opacity: 0.3;"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row 1 -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="chart-card">
+                <h3 class="chart-title"><i class="bi bi-pie-chart"></i> Status Distribution</h3>
+                <div class="chart-container">
+                    <canvas id="statusChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="chart-card">
+                <h3 class="chart-title"><i class="bi bi-bar-chart"></i> Top 10 Projects</h3>
+                <div class="chart-container">
+                    <canvas id="projectChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row 2 -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="chart-card">
+                <h3 class="chart-title"><i class="bi bi-graph-up"></i> Monthly Trends (Last 6 Months)</h3>
+                <div class="chart-container">
+                    <canvas id="trendChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="chart-card">
+                <h3 class="chart-title"><i class="bi bi-people"></i> Top 10 Vendors</h3>
+                <div class="chart-container">
+                    <canvas id="vendorChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row 3 -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="chart-card">
+                <h3 class="chart-title"><i class="bi bi-box"></i> Top 10 Items</h3>
+                <div class="chart-container">
+                    <canvas id="itemChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="chart-card">
+                <h3 class="chart-title"><i class="bi bi-stopwatch"></i> Reviewer Performance</h3>
+                <div style="max-height: 350px; overflow-y: auto;">
+                    <table class="table table-sm performance-table">
+                        <thead>
+                            <tr>
+                                <th>Reviewer</th>
+                                <th class="text-center">Reviews</th>
+                                <th class="text-end">Avg. Time (hrs)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for stat in reviewer_stats %}
+                            <tr>
+                                <td><i class="bi bi-person-check"></i> {{ stat.name }}</td>
+                                <td class="text-center"><span class="badge bg-primary">{{ stat.count }}</span></td>
+                                <td class="text-end"><strong>{{ stat.avg_hours }}</strong></td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="3" class="text-center text-muted">No reviewer data available</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Approver Performance -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="chart-card">
+                <h3 class="chart-title"><i class="bi bi-award"></i> Approver Performance</h3>
+                <div class="row">
+                    {% for stat in approver_stats %}
+                    <div class="col-md-3 col-sm-6 mb-3">
+                        <div class="card border-0" style="background: linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%);">
+                            <div class="card-body text-center">
+                                <h5 class="card-title">{{ stat.name }}</h5>
+                                <p class="mb-1"><strong>{{ stat.count }}</strong> Approvals</p>
+                                <p class="mb-0">Avg: <strong>{{ stat.avg_hours }} hrs</strong></p>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="col-12 text-center text-muted">
+                        No approver data available
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+    // Color palettes
+    const colors = {
+        primary: ['#667eea', '#764ba2', '#f093fb', '#f5576c', '#4facfe', '#00f2fe', '#43e97b', '#38f9d7'],
+        success: '#56ab2f',
+        danger: '#fa709a',
+        warning: '#f5576c',
+        info: '#4facfe'
+    };
+
+    // 1. Status Distribution Pie Chart
+    const statusCtx = document.getElementById('statusChart').getContext('2d');
+    new Chart(statusCtx, {
+        type: 'doughnut',
+        data: {
+            labels: {{ status_distribution.keys|safe }},
+            datasets: [{
+                data: {{ status_distribution.values|safe }},
+                backgroundColor: [
+                    '#ffd93d',
+                    '#4facfe',
+                    '#56ab2f',
+                    '#fa709a',
+                    '#f5576c'
+                ],
+                borderWidth: 2,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+
+    // 2. Project Bar Chart
+    const projectCtx = document.getElementById('projectChart').getContext('2d');
+    new Chart(projectCtx, {
+        type: 'bar',
+        data: {
+            labels: [{% for p in project_stats %}'{{ p.project__name }}'{% if not forloop.last %},{% endif %}{% endfor %}],
+            datasets: [{
+                label: 'Total',
+                data: [{% for p in project_stats %}{{ p.total }}{% if not forloop.last %},{% endif %}{% endfor %}],
+                backgroundColor: '#667eea'
+            }, {
+                label: 'Approved',
+                data: [{% for p in project_stats %}{{ p.approved }}{% if not forloop.last %},{% endif %}{% endfor %}],
+                backgroundColor: '#56ab2f'
+            }, {
+                label: 'Rejected',
+                data: [{% for p in project_stats %}{{ p.rejected }}{% if not forloop.last %},{% endif %}{% endfor %}],
+                backgroundColor: '#fa709a'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+
+    // 3. Monthly Trend Line Chart
+    const trendCtx = document.getElementById('trendChart').getContext('2d');
+    new Chart(trendCtx, {
+        type: 'line',
+        data: {
+            labels: [{% for m in monthly_data %}'{{ m.month }}'{% if not forloop.last %},{% endif %}{% endfor %}],
+            datasets: [{
+                label: 'Created',
+                data: [{% for m in monthly_data %}{{ m.created }}{% if not forloop.last %},{% endif %}{% endfor %}],
+                borderColor: '#667eea',
+                backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                tension: 0.4,
+                fill: true
+            }, {
+                label: 'Approved',
+                data: [{% for m in monthly_data %}{{ m.approved }}{% if not forloop.last %},{% endif %}{% endfor %}],
+                borderColor: '#56ab2f',
+                backgroundColor: 'rgba(86, 171, 47, 0.1)',
+                tension: 0.4,
+                fill: true
+            }, {
+                label: 'Rejected',
+                data: [{% for m in monthly_data %}{{ m.rejected }}{% if not forloop.last %},{% endif %}{% endfor %}],
+                borderColor: '#fa709a',
+                backgroundColor: 'rgba(250, 112, 154, 0.1)',
+                tension: 0.4,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+
+    // 4. Vendor Chart
+    const vendorCtx = document.getElementById('vendorChart').getContext('2d');
+    new Chart(vendorCtx, {
+        type: 'bar',
+        data: {
+            labels: [{% for v in vendor_stats %}'{{ v.creator__username }}'{% if not forloop.last %},{% endif %}{% endfor %}],
+            datasets: [{
+                label: 'Total MAS',
+                data: [{% for v in vendor_stats %}{{ v.total }}{% if not forloop.last %},{% endif %}{% endfor %}],
+                backgroundColor: '#764ba2'
+            }, {
+                label: 'Approved',
+                data: [{% for v in vendor_stats %}{{ v.approved }}{% if not forloop.last %},{% endif %}{% endfor %}],
+                backgroundColor: '#56ab2f'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            indexAxis: 'y',
+            scales: {
+                x: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+
+    // 5. Item Chart
+    const itemCtx = document.getElementById('itemChart').getContext('2d');
+    new Chart(itemCtx, {
+        type: 'bar',
+        data: {
+            labels: [{% for i in item_stats %}'{{ i.item__name }}'{% if not forloop.last %},{% endif %}{% endfor %}],
+            datasets: [{
+                label: 'Total',
+                data: [{% for i in item_stats %}{{ i.total }}{% if not forloop.last %},{% endif %}{% endfor %}],
+                backgroundColor: '#4facfe'
+            }, {
+                label: 'Approved',
+                data: [{% for i in item_stats %}{{ i.approved }}{% if not forloop.last %},{% endif %}{% endfor %}],
+                backgroundColor: '#56ab2f'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}

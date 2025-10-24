@@ -1,6 +1,7 @@
 from django.urls import path
 from django.contrib.auth import views as auth_views
 from . import views
+from . import analytics_views
 
 app_name = 'accounts'
 
@@ -22,4 +23,7 @@ urlpatterns = [
     # Unassign users from project (Admin only)
     path('projects/<int:project_pk>/users/<int:user_pk>/unassign/team/', views.unassign_team_member, name='unassign_team_member'),
     path('projects/<int:project_pk>/users/<int:user_pk>/unassign/vendor/', views.unassign_vendor, name='unassign_vendor'),
+    
+    # Analytics dashboard (Admin only)
+    path('analytics/', analytics_views.analytics_dashboard, name='analytics'),
 ]
