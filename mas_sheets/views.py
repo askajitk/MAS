@@ -175,14 +175,19 @@ def load_services(request):
 def load_items(request):
     service_id = request.GET.get('service')
     project_id = request.GET.get('project')
+    revision_mas_id = request.GET.get('revision_mas_id')  # Optional: for revision mode
     items = Item.objects.filter(service_id=service_id).order_by('name')
     # If project provided, exclude items already covered by a latest MAS for this vendor in that project
     if project_id:
-        blocked_item_ids = MAS.objects.filter(
+        blocked_qs = MAS.objects.filter(
             creator=request.user,
             project_id=project_id,
             is_latest=True,
-        ).values_list('item_id', flat=True)
+        )
+        # If revision mode, allow items from the same MAS chain
+        if revision_mas_id:
+            blocked_qs = blocked_qs.exclude(mas_id=revision_mas_id)
+        blocked_item_ids = blocked_qs.values_list('item_id', flat=True)
         items = items.exclude(id__in=list(blocked_item_ids))
     return JsonResponse(list(items.values('id', 'name')), safe=False)
 
@@ -325,7 +330,7 @@ def mas_revision(request, pk):
         return redirect('mas_sheets:mas_list')
     
     if request.method == 'POST':
-        form = MASForm(request.POST, request.FILES, user=request.user)
+        form = MASForm(request.POST, request.FILES, user=request.user, revision_mas_id=mas.mas_id, is_revision=True)
         if form.is_valid():
             # Create a new MAS record for the revision
             new_mas = form.save(commit=False)
@@ -359,7 +364,7 @@ def mas_revision(request, pk):
             return redirect('mas_sheets:mas_list')
     else:
         # Pre-fill form with existing data
-        form = MASForm(instance=mas, user=request.user)
+        form = MASForm(instance=mas, user=request.user, revision_mas_id=mas.mas_id, is_revision=True)
     
     context = {
         'form': form,

@@ -22,6 +22,9 @@ class MASForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         user = kwargs.pop('user')
         self.user = user
+        # For revision submissions, pass the mas_id to allow same item
+        self.revision_mas_id = kwargs.pop('revision_mas_id', None)
+        self.is_revision = kwargs.pop('is_revision', False)
         super().__init__(*args, **kwargs)
         # Determine assignments from ProjectVendor
         from projects.models import ProjectVendor
@@ -59,11 +62,15 @@ class MASForm(forms.ModelForm):
                 if service_id:
                     items_qs = Item.objects.filter(service_id=service_id)
                     if project_id:
-                        blocked_item_ids = MAS.objects.filter(
+                        blocked_qs = MAS.objects.filter(
                             creator=user,
                             project_id=project_id,
                             is_latest=True,
-                        ).values_list('item_id', flat=True)
+                        )
+                        # If revision mode, allow items from the same MAS chain
+                        if self.revision_mas_id:
+                            blocked_qs = blocked_qs.exclude(mas_id=self.revision_mas_id)
+                        blocked_item_ids = blocked_qs.values_list('item_id', flat=True)
                         items_qs = items_qs.exclude(id__in=list(blocked_item_ids))
                     self.fields['item'].queryset = items_qs
                 
@@ -143,17 +150,29 @@ class MASForm(forms.ModelForm):
                             self.initial['service'] = only_service.pk
                             # Pre-populate items for the pre-selected service and filter blocked items
                             items_qs = Item.objects.filter(service=only_service)
-                            blocked_item_ids = MAS.objects.filter(
+                            blocked_qs = MAS.objects.filter(
                                 creator=user,
                                 project=only_project,
                                 is_latest=True,
-                            ).values_list('item_id', flat=True)
+                            )
+                            # If revision mode, allow items from the same MAS chain
+                            if self.revision_mas_id:
+                                blocked_qs = blocked_qs.exclude(mas_id=self.revision_mas_id)
+                            blocked_item_ids = blocked_qs.values_list('item_id', flat=True)
                             self.fields['item'].queryset = items_qs.exclude(id__in=list(blocked_item_ids))
                     else:
                         self.fields['service'].queryset = Service.objects.all()
                 except ProjectVendor.DoesNotExist:
                     self.fields['building'].queryset = Building.objects.filter(project=only_project)
                     self.fields['service'].queryset = Service.objects.filter(project=only_project)
+        
+        # If this is a revision, add a CSS class for visual indication
+        # (JavaScript will handle making them read-only while preserving form submission)
+        if self.is_revision:
+            self.fields['project'].widget.attrs['class'] = self.fields['project'].widget.attrs.get('class', 'form-control') + ' bg-light'
+            self.fields['building'].widget.attrs['class'] = self.fields['building'].widget.attrs.get('class', 'form-control') + ' bg-light'
+            self.fields['service'].widget.attrs['class'] = self.fields['service'].widget.attrs.get('class', 'form-control') + ' bg-light'
+            self.fields['item'].widget.attrs['class'] = self.fields['item'].widget.attrs.get('class', 'form-control') + ' bg-light'
     
     def clean_attachment(self):
         attachment = self.cleaned_data.get('attachment')
@@ -204,6 +223,10 @@ class MASForm(forms.ModelForm):
             # When editing, ignore the current instance
             if self.instance and self.instance.pk:
                 existing_qs = existing_qs.exclude(pk=self.instance.pk)
+            
+            # When submitting a revision, allow the same item if it's part of the same MAS chain
+            if self.revision_mas_id:
+                existing_qs = existing_qs.exclude(mas_id=self.revision_mas_id)
 
             if existing_qs.exists():
                 raise ValidationError(

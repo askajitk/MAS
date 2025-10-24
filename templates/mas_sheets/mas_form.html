@@ -187,9 +187,13 @@
         $("#id_service").change(function() {
             var serviceId = $(this).val();
             if (serviceId) {
+                var ajaxData = { 'service': serviceId, 'project': $("#id_project").val() };
+                {% if is_revision and mas %}
+                ajaxData['revision_mas_id'] = '{{ mas.mas_id }}';
+                {% endif %}
                 $.ajax({
                     url: "{% url 'mas_sheets:ajax_load_items' %}",
-                    data: { 'service': serviceId, 'project': $("#id_project").val() },
+                    data: ajaxData,
                     success: function(data) {
                         $("#id_item").html('<option value="">---------</option>');
                         data.forEach(function(item) {
@@ -253,6 +257,20 @@
             // Service is selected but items not loaded, trigger load
             $("#id_service").trigger('change');
         }
+        
+        // If in revision mode, make fields read-only but allow form submission
+        {% if is_revision %}
+        $('#id_project, #id_building, #id_service, #id_item').on('select2:opening', function(e) {
+            e.preventDefault();
+            return false;
+        });
+        $('#id_project, #id_building, #id_service, #id_item').css({
+            'pointer-events': 'none',
+            'background-color': '#e9ecef'
+        });
+        // Also prevent changes before Select2 initializes
+        $('#id_project, #id_building, #id_service, #id_item').prop('readonly', true);
+        {% endif %}
     });
 </script>
 {% endblock %}
