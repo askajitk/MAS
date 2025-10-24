@@ -29,7 +29,14 @@ def dashboard(request):
     # If user is a vendor, get their MAS list
     if request.user.user_type == 'Vendor':
         from mas_sheets.models import MAS
-        context['mas_list'] = MAS.objects.filter(creator=request.user).order_by('-updated_at')[:10]
+        # Show only pending MAS (latest revisions) in dashboard list
+        from django.db.models import Q
+        pending_q = Q(status='pending_review') | Q(status='pending_approval') | Q(status='revision_requested')
+        context['mas_list'] = (
+            MAS.objects.filter(creator=request.user, is_latest=True)
+            .filter(pending_q)
+            .order_by('-updated_at')[:10]
+        )
     
     return render(request, 'accounts/dashboard.html', context)
 

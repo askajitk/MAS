@@ -21,6 +21,7 @@ class MASForm(forms.ModelForm):
     
     def __init__(self, *args, **kwargs):
         user = kwargs.pop('user')
+        self.user = user
         super().__init__(*args, **kwargs)
         # Determine assignments from ProjectVendor
         from projects.models import ProjectVendor
@@ -56,7 +57,15 @@ class MASForm(forms.ModelForm):
                 
                 service_id = self.data.get('service')
                 if service_id:
-                    self.fields['item'].queryset = Item.objects.filter(service_id=service_id)
+                    items_qs = Item.objects.filter(service_id=service_id)
+                    if project_id:
+                        blocked_item_ids = MAS.objects.filter(
+                            creator=user,
+                            project_id=project_id,
+                            is_latest=True,
+                        ).values_list('item_id', flat=True)
+                        items_qs = items_qs.exclude(id__in=list(blocked_item_ids))
+                    self.fields['item'].queryset = items_qs
                 
                 item_id = self.data.get('item')
                 if item_id:
@@ -83,7 +92,14 @@ class MASForm(forms.ModelForm):
                     self.fields['service'].queryset = Service.objects.all()
             except ProjectVendor.DoesNotExist:
                 self.fields['service'].queryset = Service.objects.filter(project=self.instance.project)
-            self.fields['item'].queryset = Item.objects.filter(service=self.instance.service)
+            # Items while editing: exclude blocked items but always include the current item
+            items_qs = Item.objects.filter(service=self.instance.service)
+            blocked_item_ids = MAS.objects.filter(
+                creator=user,
+                project=self.instance.project,
+                is_latest=True,
+            ).exclude(pk=self.instance.pk).values_list('item_id', flat=True)
+            self.fields['item'].queryset = items_qs.exclude(id__in=list(blocked_item_ids)) | Item.objects.filter(pk=self.instance.item_id)
             
             # Set make choices from ItemMake model
             from services.models import ItemMake
@@ -125,8 +141,14 @@ class MASForm(forms.ModelForm):
                         if assigned_services.count() == 1:
                             only_service = assigned_services.first()
                             self.initial['service'] = only_service.pk
-                            # Pre-populate items for the pre-selected service
-                            self.fields['item'].queryset = Item.objects.filter(service=only_service)
+                            # Pre-populate items for the pre-selected service and filter blocked items
+                            items_qs = Item.objects.filter(service=only_service)
+                            blocked_item_ids = MAS.objects.filter(
+                                creator=user,
+                                project=only_project,
+                                is_latest=True,
+                            ).values_list('item_id', flat=True)
+                            self.fields['item'].queryset = items_qs.exclude(id__in=list(blocked_item_ids))
                     else:
                         self.fields['service'].queryset = Service.objects.all()
                 except ProjectVendor.DoesNotExist:
@@ -152,6 +174,8 @@ class MASForm(forms.ModelForm):
         cleaned_data = super().clean()
         make_choices = cleaned_data.get('make_choices')
         other_make = cleaned_data.get('other_make')
+        project = cleaned_data.get('project')
+        item = cleaned_data.get('item')
         
         if make_choices == 'other' and not other_make:
             raise ValidationError({'other_make': 'This field is required when selecting Other as make.'})
@@ -168,4 +192,27 @@ class MASForm(forms.ModelForm):
             except (ItemMake.DoesNotExist, ValueError, TypeError):
                 cleaned_data['make'] = make_choices
         
+        # Prevent duplicate MAS creation for the same Project + Item by the same vendor
+        # If any latest MAS exists for this pair, vendor should revise existing instead of creating a new one
+        if project and item:
+            existing_qs = MAS.objects.filter(
+                creator=self.user,
+                project=project,
+                item=item,
+                is_latest=True,
+            )
+            # When editing, ignore the current instance
+            if self.instance and self.instance.pk:
+                existing_qs = existing_qs.exclude(pk=self.instance.pk)
+
+            if existing_qs.exists():
+                raise ValidationError(
+                    {
+                        'item': (
+                            'An MAS already exists for this Item in the selected Project. '
+                            'Please submit a revision to the existing MAS instead of creating a new one.'
+                        )
+                    }
+                )
+
         return cleaned_data

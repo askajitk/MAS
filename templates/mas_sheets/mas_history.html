@@ -4,15 +4,22 @@
 
 {% block content %}
 <div class="container mt-4">
-    <h2>MAS Activity History</h2>
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+        <h2 class="mb-0">MAS Activity History</h2>
+        <button class="btn btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#filtersCollapse" aria-expanded="false" aria-controls="filtersCollapse">
+            <i class="bi bi-funnel"></i>
+            Filters {% if filters_active_count %}<span class="badge bg-secondary ms-1">{{ filters_active_count }}</span>{% endif %}
+        </button>
+    </div>
     
     <!-- Filter Form -->
     <div class="card mb-4">
         <div class="card-header">
             <h5 class="mb-0">Filters</h5>
         </div>
-        <div class="card-body">
-            <form method="get" id="filterForm">
+        <div id="filtersCollapse" class="collapse">
+            <div class="card-body">
+                <form method="get" id="filterForm">
                 <div class="row">
                     <div class="col-md-3 mb-3">
                         <label for="date_from" class="form-label">Date From</label>
@@ -24,7 +31,12 @@
                     </div>
                     <div class="col-md-3 mb-3">
                         <label for="mas_id" class="form-label">MAS ID</label>
-                        <input type="text" class="form-control" name="mas_id" id="mas_id" value="{{ filters.mas_id }}" placeholder="Search MAS ID">
+                        <input list="masIdList" type="text" class="form-control" name="mas_id" id="mas_id" value="{{ filters.mas_id }}" placeholder="Type or choose MAS ID">
+                        <datalist id="masIdList">
+                            {% for mid in mas_ids %}
+                                <option value="{{ mid }}"></option>
+                            {% endfor %}
+                        </datalist>
                     </div>
                     <div class="col-md-3 mb-3">
                         <label for="action" class="form-label">Action</label>
@@ -121,7 +133,8 @@
                         <a href="{% url 'mas_sheets:mas_history' %}" class="btn btn-secondary">Clear Filters</a>
                     </div>
                 </div>
-            </form>
+                </form>
+            </div>
         </div>
     </div>
     
@@ -204,7 +217,7 @@
                                 {% endif %}
                             </td>
                             <td>
-                                <small>{{ log.details|truncatewords:15 }}</small>
+                                <div class="truncate" title="{{ log.details }}">{{ log.details|default:"" }}</div>
                             </td>
                         </tr>
                         {% empty %}

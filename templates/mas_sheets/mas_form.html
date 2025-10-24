@@ -12,6 +12,11 @@
                     <h2>{{ mas|yesno:"Edit,Create" }} MAS</h2>
                 </div>
                 <div class="card-body">
+                    {% if is_revision %}
+                    <div class="alert alert-info" role="alert">
+                        You are submitting a new revision for <strong>{{ mas.mas_id }}</strong>. Only the latest revision can be submitted. Previous revisions are view-only and listed below.
+                    </div>
+                    {% endif %}
                     <form method="post" enctype="multipart/form-data" id="masForm">
                         {% csrf_token %}
                         
@@ -43,11 +48,65 @@
                             {{ form.attachment|as_crispy_field }}
                         </div>
                         
-                        <button type="submit" class="btn btn-primary">Save</button>
+                        <button type="submit" class="btn btn-primary">{% if is_revision %}Submit Revision{% else %}Save{% endif %}</button>
                         <a href="{% url 'mas_sheets:mas_list' %}" class="btn btn-secondary">Cancel</a>
                     </form>
                 </div>
             </div>
+            {% if is_revision and revision_history %}
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h3 class="h5 mb-0">Revision History</h3>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-striped align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Revision</th>
+                                    <th>Status</th>
+                                    <th>Updated</th>
+                                    <th>Attachment</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for rev in revision_history %}
+                                <tr {% if rev.is_latest %}class="table-primary"{% endif %}>
+                                    <td>
+                                        <strong>{{ rev.revision }}</strong>
+                                        {% if rev.is_latest %}
+                                            <span class="badge bg-primary ms-1">Current</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if rev.status == 'pending_review' %}
+                                            <span class="badge bg-warning">Pending Review</span>
+                                        {% elif rev.status == 'pending_approval' %}
+                                            <span class="badge bg-info">Pending Approval</span>
+                                        {% elif rev.status == 'approved' %}
+                                            <span class="badge bg-success">Approved</span>
+                                        {% elif rev.status == 'rejected' %}
+                                            <span class="badge bg-danger">Rejected</span>
+                                        {% elif rev.status == 'revision_requested' %}
+                                            <span class="badge bg-warning">Revision Requested</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ rev.updated_at|date:"d/m/Y H:i" }}</td>
+                                    <td>
+                                        {% if rev.attachment %}
+                                            <a href="{{ rev.attachment.url }}" target="_blank" class="btn btn-sm btn-outline-secondary">View</a>
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
         </div>
     </div>
 </div>
@@ -130,7 +189,7 @@
             if (serviceId) {
                 $.ajax({
                     url: "{% url 'mas_sheets:ajax_load_items' %}",
-                    data: { 'service': serviceId },
+                    data: { 'service': serviceId, 'project': $("#id_project").val() },
                     success: function(data) {
                         $("#id_item").html('<option value="">---------</option>');
                         data.forEach(function(item) {

@@ -174,7 +174,16 @@ def load_services(request):
 @login_required
 def load_items(request):
     service_id = request.GET.get('service')
+    project_id = request.GET.get('project')
     items = Item.objects.filter(service_id=service_id).order_by('name')
+    # If project provided, exclude items already covered by a latest MAS for this vendor in that project
+    if project_id:
+        blocked_item_ids = MAS.objects.filter(
+            creator=request.user,
+            project_id=project_id,
+            is_latest=True,
+        ).values_list('item_id', flat=True)
+        items = items.exclude(id__in=list(blocked_item_ids))
     return JsonResponse(list(items.values('id', 'name')), safe=False)
 
 @login_required
@@ -301,6 +310,20 @@ def mas_revision(request, pk):
     if not (request.user == mas.creator and mas.status in ['rejected', 'revision_requested']):
         raise PermissionDenied
     
+    # Only allow submitting a revision from the latest revision of this MAS chain
+    if not mas.is_latest:
+        latest = MAS.objects.filter(mas_id=mas.mas_id, is_latest=True).first()
+        if latest:
+            if latest.status in ['rejected', 'revision_requested']:
+                messages.warning(request, 'Please submit revisions from the latest revision only. Redirected to the latest.')
+                return redirect('mas_sheets:mas_revision', pk=latest.pk)
+            else:
+                messages.info(request, 'The latest revision is not requesting changes. No new revision can be submitted.')
+                return redirect('mas_sheets:mas_list')
+        # Fallback: if no latest found (should not happen), send to list
+        messages.warning(request, 'Please submit revisions from the latest revision only.')
+        return redirect('mas_sheets:mas_list')
+    
     if request.method == 'POST':
         form = MASForm(request.POST, request.FILES, user=request.user)
         if form.is_valid():
@@ -341,7 +364,8 @@ def mas_revision(request, pk):
     context = {
         'form': form,
         'mas': mas,
-        'is_revision': True
+        'is_revision': True,
+        'revision_history': mas.get_revision_history()
     }
     return render(request, 'mas_sheets/mas_form.html', context)
 
@@ -464,6 +488,18 @@ def mas_history(request):
         items_list = Item.objects.filter(id__in=items_from_mas).order_by('name')
     
     actions_list = MASActivityLog.ACTION_CHOICES
+
+    # Build MAS ID options for the MAS ID filter (typed input + suggestions)
+    # Scope suggestions to the user's visibility
+    if request.user.user_type == 'Admin':
+        mas_id_options_qs = MAS.objects.all()
+    elif request.user.user_type == 'Team':
+        from projects.models import BuildingRole
+        assigned_buildings = BuildingRole.objects.filter(user=request.user).values_list('building', flat=True)
+        mas_id_options_qs = MAS.objects.filter(building_id__in=assigned_buildings)
+    else:  # Vendor
+        mas_id_options_qs = MAS.objects.filter(creator=request.user)
+    mas_id_options = mas_id_options_qs.values_list('mas_id', flat=True).distinct().order_by('mas_id')[:1000]
     
     # Get unique makes from the filtered logs for the make dropdown
     # Get makes before applying the make filter
@@ -481,6 +517,23 @@ def mas_history(request):
     
     makes_list = temp_logs.exclude(make='').values_list('make', flat=True).distinct().order_by('make')
     
+    # Count active filters for UI badge
+    filters_dict = {
+        'date_from': date_from or '',
+        'date_to': date_to or '',
+        'created_by': created_by or '',
+        'reviewed_by': reviewed_by or '',
+        'approved_by': approved_by or '',
+        'service': service or '',
+        'item': item or '',
+        'make': make or '',
+        'project': project or '',
+        'building': building or '',
+        'action': action or '',
+        'mas_id': mas_id or '',
+    }
+    filters_active_count = sum(1 for v in filters_dict.values() if v)
+
     context = {
         'logs': logs[:500],  # Limit to 500 records for performance
         'users': users,
@@ -490,19 +543,8 @@ def mas_history(request):
         'items': items_list,
         'makes': makes_list,
         'actions': actions_list,
-        'filters': {
-            'date_from': date_from or '',
-            'date_to': date_to or '',
-            'created_by': created_by or '',
-            'reviewed_by': reviewed_by or '',
-            'approved_by': approved_by or '',
-            'service': service or '',
-            'item': item or '',
-            'make': make or '',
-            'project': project or '',
-            'building': building or '',
-            'action': action or '',
-            'mas_id': mas_id or '',
-        }
+    'mas_ids': mas_id_options,
+        'filters': filters_dict,
+        'filters_active_count': filters_active_count,
     }
     return render(request, 'mas_sheets/mas_history.html', context)
