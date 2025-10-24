@@ -1,4 +1,4 @@
-# Management Application System (MAS)
+# MAS
 
 A Django-based web application for managing construction projects, services, and teams.
 
