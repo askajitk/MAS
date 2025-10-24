@@ -168,8 +168,12 @@ def team_member_delete(request, project_pk, member_pk):
         return HttpResponseForbidden('You do not have permission to remove this team member.')
 
     if request.method == 'POST':
+        # Also remove any BuildingRole assignments for this user within this project's buildings
+        from .models import BuildingRole
+        BuildingRole.objects.filter(user=member.user, building__project=project).delete()
+        # Remove the project-level member association
         member.delete()
-        messages.success(request, 'Team member removed successfully.')
+        messages.success(request, 'Team member removed successfully, including building role assignments.')
         return redirect('project_detail', pk=project.pk)
     return render(request, 'projects/confirm_delete.html', {
         'object': member,

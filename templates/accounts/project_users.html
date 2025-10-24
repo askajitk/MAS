@@ -1,0 +1,199 @@
+{% extends 'base.html' %}
+{% load project_extras %}
+
+{% block title %}{{ project.name }} - Users | {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2>Users Assigned to {{ project.name }}</h2>
+            <p class="text-muted">Project Number: {{ project.project_number }}</p>
+        </div>
+        <div>
+            <a href="{% url 'project_detail' project.pk %}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Project
+            </a>
+            <a href="{% url 'accounts:user_list' %}?project={{ project.pk }}" class="btn btn-primary">
+                <i class="bi bi-list"></i> View in User List
+            </a>
+        </div>
+    </div>
+
+    <!-- Team Members Section -->
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0"><i class="bi bi-people"></i> Team Members ({{ team_members.count }})</h4>
+        </div>
+        <div class="card-body">
+            {% if team_members %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Username</th>
+                                <th>Full Name</th>
+                                <th>Email</th>
+                                <th>Department</th>
+                                <th>Building Assignments</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for member in team_members %}
+                            <tr>
+                                <td><strong>{{ member.username }}</strong></td>
+                                <td>{{ member.get_full_name|default:"-" }}</td>
+                                <td>{{ member.email|default:"-" }}</td>
+                                <td>
+                                    {% if member.department == 'Other' and member.other_department %}
+                                        {{ member.other_department }}
+                                    {% else %}
+                                        {{ member.department }}
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% with roles=building_roles|get_item:member.id %}
+                                        {% if roles %}
+                                            {% for role in roles %}
+                                                <div class="mb-1">
+                                                    <span class="badge bg-info">{{ role.building.name }}</span>
+                                                    <span class="badge bg-secondary">{{ role.role }}</span>
+                                                </div>
+                                            {% endfor %}
+                                        {% else %}
+                                            <span class="text-muted">No assignments</span>
+                                        {% endif %}
+                                    {% endwith %}
+                                </td>
+                                <td>
+                                    <div class="btn-group">
+                                        <a href="{% url 'accounts:user_edit' member.pk %}" 
+                                           class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-pencil"></i> Edit
+                                        </a>
+                                        <form method="post" action="{% url 'accounts:unassign_team_member' project.pk member.pk %}" onsubmit="return confirm('Remove this team member from project?');">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                <i class="bi bi-x-circle"></i> Remove
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p class="text-muted">No team members assigned to this project.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Vendors Section -->
+    <div class="card mb-4">
+        <div class="card-header bg-success text-white">
+            <h4 class="mb-0"><i class="bi bi-building"></i> Vendors ({{ vendors.count }})</h4>
+        </div>
+        <div class="card-body">
+            {% if vendors %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Username</th>
+                                <th>Full Name</th>
+                                <th>Email</th>
+                                <th>Department</th>
+                                <th>Building</th>
+                                <th>Services</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for vendor in vendors %}
+                            <tr>
+                                <td><strong>{{ vendor.username }}</strong></td>
+                                <td>{{ vendor.get_full_name|default:"-" }}</td>
+                                <td>{{ vendor.email|default:"-" }}</td>
+                                <td>
+                                    {% if vendor.department == 'Other' and vendor.other_department %}
+                                        {{ vendor.other_department }}
+                                    {% else %}
+                                        {{ vendor.department }}
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% with assignment=vendor_assignments|get_item:vendor.id %}
+                                        {% if assignment and assignment.building %}
+                                            <span class="badge bg-info">{{ assignment.building.name }}</span>
+                                        {% else %}
+                                            <span class="text-muted">All buildings</span>
+                                        {% endif %}
+                                    {% endwith %}
+                                </td>
+                                <td>
+                                    {% with assignment=vendor_assignments|get_item:vendor.id %}
+                                        {% if assignment %}
+                                            {% for service in assignment.services.all %}
+                                                <span class="badge bg-secondary">{{ service.name }}</span>
+                                            {% empty %}
+                                                <span class="text-muted">All services</span>
+                                            {% endfor %}
+                                        {% endif %}
+                                    {% endwith %}
+                                </td>
+                                <td>
+                                    <div class="btn-group">
+                                        <a href="{% url 'accounts:user_edit' vendor.pk %}" 
+                                           class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-pencil"></i> Edit
+                                        </a>
+                                        <form method="post" action="{% url 'accounts:unassign_vendor' project.pk vendor.pk %}" onsubmit="return confirm('Remove this vendor from project?');">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                <i class="bi bi-x-circle"></i> Remove
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p class="text-muted">No vendors assigned to this project.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Summary Card -->
+    <div class="card">
+        <div class="card-body">
+            <h5>Summary</h5>
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="text-center p-3 bg-light rounded">
+                        <h3 class="text-primary">{{ team_members.count }}</h3>
+                        <p class="mb-0">Team Members</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="text-center p-3 bg-light rounded">
+                        <h3 class="text-success">{{ vendors.count }}</h3>
+                        <p class="mb-0">Vendors</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="text-center p-3 bg-light rounded">
+                        <h3 class="text-info">{{ team_members.count|add:vendors.count }}</h3>
+                        <p class="mb-0">Total Users</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -133,6 +133,18 @@
             </div>
         </div>
     </div>
+
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h3 class="card-title h5 mb-0">User Management</h3>
+            </div>
+            <div class="card-body">
+                <a href="{% url 'accounts:user_list' %}" class="btn btn-primary">Manage Users</a>
+                <a href="{% url 'accounts:user_create' %}" class="btn btn-success">Create User</a>
+            </div>
+        </div>
+    </div>
     {% endif %}
 </div>
 {% endblock %}

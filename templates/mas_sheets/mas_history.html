@@ -172,7 +172,19 @@
                                     <span class="badge bg-secondary">{{ log.get_action_display }}</span>
                                 {% endif %}
                             </td>
-                            <td>{{ log.user.username|default:"System" }}</td>
+                            <td>
+                                {% if log.username %}
+                                    {{ log.username }}
+                                    {% if log.user and not log.user.is_active %}
+                                        <span class="text-muted">(inactive)</span>
+                                    {% endif %}
+                                {% else %}
+                                    {{ log.user.username|default:"System" }}
+                                    {% if log.user and not log.user.is_active %}
+                                        <span class="text-muted">(inactive)</span>
+                                    {% endif %}
+                                {% endif %}
+                            </td>
                             <td>{{ log.project_name }}</td>
                             <td>{{ log.building_name }}</td>
                             <td>{{ log.service_name }}</td>

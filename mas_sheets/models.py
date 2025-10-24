@@ -133,6 +133,8 @@ class MASActivityLog(models.Model):
     mas = models.ForeignKey(MAS, on_delete=models.CASCADE, related_name='activity_logs')
     action = models.CharField(max_length=50, choices=ACTION_CHOICES)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
+    # Snapshot of username at time of logging to preserve history
+    username = models.CharField(max_length=150, blank=True)
     timestamp = models.DateTimeField(default=timezone.now)
     details = models.TextField(blank=True)
     
@@ -150,6 +152,9 @@ class MASActivityLog(models.Model):
         verbose_name_plural = 'MAS Activity Logs'
     
     def save(self, *args, **kwargs):
+        # Capture username snapshot if available
+        if not self.username and self.user:
+            self.username = self.user.username
         # Capture snapshot of MAS data if not already set
         if not self.project_name and self.mas:
             self.project_name = self.mas.project.name

@@ -128,7 +128,7 @@
             <tr class="log-entry" 
                 data-action="{{ log.action }}"
                 data-type="{{ log.content_type }}"
-                data-search="{{ log.user.get_full_name|default:log.user.username|lower }} {{ log.details|lower }}">
+                data-search="{% if log.username %}{{ log.username|lower }}{% elif log.user %}{{ log.user.username|lower }}{% else %}system{% endif %} {{ log.details|lower }}">
                 <td class="log-timestamp">
                     <div title="{{ log.timestamp }}">
                         {{ log.timestamp|date:"M d, Y H:i" }}
@@ -138,7 +138,19 @@
                 <td class="log-user">
                     <div class="d-flex align-items-center">
                         <i class="fas fa-user-circle me-2"></i>
-                        {{ log.user.get_full_name|default:log.user.username }}
+                        {% if log.username %}
+                            {{ log.username }}
+                            {% if log.user and not log.user.is_active %}
+                                <span class="text-muted">(inactive)</span>
+                            {% endif %}
+                        {% elif log.user %}
+                            {{ log.user.username }}
+                            {% if not log.user.is_active %}
+                                <span class="text-muted">(inactive)</span>
+                            {% endif %}
+                        {% else %}
+                            <span class="text-muted">System</span>
+                        {% endif %}
                     </div>
                 </td>
                 <td class="log-action">

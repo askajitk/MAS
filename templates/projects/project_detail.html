@@ -11,6 +11,9 @@
     </div>
     <div class="col-md-4 text-end">
         <div class="btn-group">
+            <a href="{% url 'accounts:project_users' project.pk %}" class="btn btn-info">
+                <i class="bi bi-people"></i> View All Users
+            </a>
             <a href="{% url 'project_edit' project.pk %}" class="btn btn-warning">Edit Project</a>
             <a href="{% url 'project_list' %}" class="btn btn-secondary">Back to Projects</a>
         </div>

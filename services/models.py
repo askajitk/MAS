@@ -45,6 +45,8 @@ class ServiceLog(models.Model):
     ]
 
     user = models.ForeignKey(get_user_model(), on_delete=models.SET_NULL, null=True)
+    # Snapshot of username at time of logging to preserve history if user is deleted/renamed
+    username = models.CharField(max_length=150, null=True, blank=True)
     action = models.CharField(max_length=20, choices=ACTION_CHOICES)
     content_type = models.CharField(max_length=50)  # Service, Item, or ItemMake
     object_id = models.IntegerField()

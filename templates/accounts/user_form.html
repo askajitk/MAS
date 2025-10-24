@@ -1,0 +1,205 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }} | {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h3>{{ title }}</h3>
+                </div>
+                <div class="card-body">
+                    <form method="post" novalidate>
+                        {% csrf_token %}
+                        
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger" role="alert">
+                                {{ form.non_field_errors }}
+                            </div>
+                        {% endif %}
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.username.id_for_label }}" class="form-label">
+                                    Username <span class="text-danger">*</span>
+                                </label>
+                                {{ form.username }}
+                                {% if form.username.errors %}
+                                    <div class="text-danger">{{ form.username.errors }}</div>
+                                {% endif %}
+                                <small class="form-text text-muted">{{ form.username.help_text }}</small>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.email.id_for_label }}" class="form-label">Email</label>
+                                {{ form.email }}
+                                {% if form.email.errors %}
+                                    <div class="text-danger">{{ form.email.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.user_type.id_for_label }}" class="form-label">
+                                    User Type <span class="text-danger">*</span>
+                                </label>
+                                {{ form.user_type }}
+                                {% if form.user_type.errors %}
+                                    <div class="text-danger">{{ form.user_type.errors }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.department.id_for_label }}" class="form-label">
+                                    Department <span class="text-danger">*</span>
+                                </label>
+                                {{ form.department }}
+                                {% if form.department.errors %}
+                                    <div class="text-danger">{{ form.department.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="mb-3" id="other-department-field" style="display: none;">
+                            <label for="{{ form.other_department.id_for_label }}" class="form-label">
+                                Specify Other Department
+                            </label>
+                            {{ form.other_department }}
+                            {% if form.other_department.errors %}
+                                <div class="text-danger">{{ form.other_department.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <hr class="my-4">
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.password1.id_for_label }}" class="form-label">
+                                    Password {% if action == 'Create' %}<span class="text-danger">*</span>{% endif %}
+                                </label>
+                                {{ form.password1 }}
+                                {% if form.password1.errors %}
+                                    <div class="text-danger">{{ form.password1.errors }}</div>
+                                {% endif %}
+                                {% if action == 'Create' %}
+                                <div class="password-requirements mt-2" id="password-requirements">
+                                    <small class="text-muted">Password must contain:</small>
+                                    <ul class="list-unstyled mb-0 small">
+                                        <li id="length-req"><i class="bi bi-circle"></i> At least 8 characters</li>
+                                        <li id="uppercase-req"><i class="bi bi-circle"></i> One uppercase letter</li>
+                                        <li id="number-req"><i class="bi bi-circle"></i> One number</li>
+                                        <li id="symbol-req"><i class="bi bi-circle"></i> One special character (!@#$%^&*)</li>
+                                    </ul>
+                                </div>
+                                {% else %}
+                                <small class="form-text text-muted">Leave blank to keep current password</small>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.password2.id_for_label }}" class="form-label">
+                                    Confirm Password {% if action == 'Create' %}<span class="text-danger">*</span>{% endif %}
+                                </label>
+                                {{ form.password2 }}
+                                {% if form.password2.errors %}
+                                    <div class="text-danger">{{ form.password2.errors }}</div>
+                                {% endif %}
+                                {% if action == 'Create' %}
+                                <div class="mt-2">
+                                    <small id="match-req" class="text-muted">
+                                        <i class="bi bi-circle"></i> Passwords must match
+                                    </small>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{% url 'accounts:user_list' %}" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left"></i> Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-save"></i> {{ action }}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Show/hide other department field
+    function toggleOtherDepartment() {
+        const departmentSelect = document.getElementById('{{ form.department.id_for_label }}');
+        const otherField = document.getElementById('other-department-field');
+        
+        if (departmentSelect.value === 'Other') {
+            otherField.style.display = 'block';
+        } else {
+            otherField.style.display = 'none';
+        }
+    }
+    
+    // Run on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        toggleOtherDepartment();
+        document.getElementById('{{ form.department.id_for_label }}').addEventListener('change', toggleOtherDepartment);
+        
+        {% if action == 'Create' %}
+        // Password validation for create mode
+        const password1 = document.getElementById('{{ form.password1.id_for_label }}');
+        const password2 = document.getElementById('{{ form.password2.id_for_label }}');
+        
+        if (password1) {
+            password1.addEventListener('input', validatePassword);
+            if (password2) {
+                password2.addEventListener('input', validatePassword);
+            }
+        }
+        
+        function validatePassword() {
+            const pwd = password1.value;
+            const pwd2 = password2.value;
+            
+            // Check length
+            updateRequirement('length-req', pwd.length >= 8);
+            
+            // Check uppercase
+            updateRequirement('uppercase-req', /[A-Z]/.test(pwd));
+            
+            // Check number
+            updateRequirement('number-req', /\d/.test(pwd));
+            
+            // Check special character
+            updateRequirement('symbol-req', /[!@#$%^&*(),.?":{}|<>]/.test(pwd));
+            
+            // Check passwords match
+            if (pwd2) {
+                updateRequirement('match-req', pwd === pwd2 && pwd.length > 0);
+            }
+        }
+        
+        function updateRequirement(id, isValid) {
+            const element = document.getElementById(id);
+            if (element) {
+                const icon = element.querySelector('i');
+                if (isValid) {
+                    element.classList.add('text-success');
+                    element.classList.remove('text-muted');
+                    icon.className = 'bi bi-check-circle-fill';
+                } else {
+                    element.classList.remove('text-success');
+                    element.classList.add('text-muted');
+                    icon.className = 'bi bi-circle';
+                }
+            }
+        }
+        {% endif %}
+    });
+</script>
+{% endblock %}

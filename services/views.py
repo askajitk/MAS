@@ -25,6 +25,7 @@ def service_create(request):
             service = form.save()
             ServiceLog.objects.create(
                 user=request.user,
+                username=request.user.username,
                 action='CREATE',
                 content_type='Service',
                 object_id=service.id,
@@ -50,6 +51,7 @@ def service_edit(request, pk):
             service = form.save()
             ServiceLog.objects.create(
                 user=request.user,
+                username=request.user.username,
                 action='UPDATE',
                 content_type='Service',
                 object_id=service.id,
@@ -73,6 +75,7 @@ def service_delete(request, pk):
     if request.method == 'POST':
         ServiceLog.objects.create(
             user=request.user,
+            username=request.user.username,
             action='DELETE',
             content_type='Service',
             object_id=service.id,
@@ -126,6 +129,7 @@ def item_create(request, service_pk):
                     
             ServiceLog.objects.create(
                 user=request.user,
+                username=request.user.username,
                 action='CREATE',
                 content_type='Item',
                 object_id=item.id,
@@ -175,6 +179,7 @@ def item_edit(request, pk):
             
             ServiceLog.objects.create(
                 user=request.user,
+                username=request.user.username,
                 action='UPDATE',
                 content_type='Item',
                 object_id=item.id,
@@ -200,6 +205,7 @@ def item_delete(request, pk):
     if request.method == 'POST':
         ServiceLog.objects.create(
             user=request.user,
+            username=request.user.username,
             action='DELETE',
             content_type='Item',
             object_id=item.id,
