@@ -6,7 +6,7 @@ from django.utils import timezone
 from datetime import timedelta
 from mas_sheets.models import MAS, MASActivityLog
 from projects.models import Project
-from services.models import Item
+from services.models import Item, Service
 from accounts.models import CustomUser
 
 
@@ -20,6 +20,79 @@ def analytics_dashboard(request):
     
     # Get all MAS records
     all_mas = MAS.objects.all()
+    
+    # Calculate time periods
+    now = timezone.now()
+    last_quarter_start = now - timedelta(days=90)
+    last_30_days_start = now - timedelta(days=30)
+    
+    # NEW METRICS
+    # 1. MAS processed so far (all approved MAS)
+    mas_processed_total = all_mas.filter(status='approved').count()
+    
+    # 2. MAS processed in last quarter
+    mas_processed_last_quarter = all_mas.filter(
+        status='approved',
+        approval_date__gte=last_quarter_start
+    ).count()
+    
+    # 3. MAS processed in last 30 days
+    mas_processed_last_30_days = all_mas.filter(
+        status='approved',
+        approval_date__gte=last_30_days_start
+    ).count()
+    
+    # 4. Open / under review MAS in system
+    open_mas_count = all_mas.filter(
+        status__in=['pending_review', 'pending_approval', 'revision_requested']
+    ).count()
+    
+    # 5. Reviewer summary: how many MAS with which reviewer
+    reviewer_summary = list(all_mas.filter(
+        reviewer__isnull=False
+    ).values('reviewer__username').annotate(
+        count=Count('id')
+    ).order_by('-count'))
+    
+    # 6. Service wise open MAS count
+    service_wise_open = list(all_mas.filter(
+        status__in=['pending_review', 'pending_approval', 'revision_requested']
+    ).values('service__name').annotate(
+        count=Count('id')
+    ).order_by('-count'))
+    
+    # 7. Service wise average Turn Around Time for last 90 days
+    service_wise_tat = []
+    services_with_approved = all_mas.filter(
+        status='approved',
+        approval_date__gte=last_quarter_start,
+        approval_date__isnull=False
+    ).values('service__name').distinct()
+    
+    for service in services_with_approved:
+        service_name = service['service__name']
+        if service_name:
+            approved_in_service = all_mas.filter(
+                service__name=service_name,
+                status='approved',
+                approval_date__gte=last_quarter_start,
+                approval_date__isnull=False
+            )
+            
+            if approved_in_service.exists():
+                total_seconds = sum([
+                    (m.approval_date - m.created_at).total_seconds()
+                    for m in approved_in_service
+                ])
+                avg_seconds = total_seconds / approved_in_service.count()
+                service_wise_tat.append({
+                    'service': service_name,
+                    'avg_days': round(avg_seconds / 86400, 1),
+                    'avg_hours': round(avg_seconds / 3600, 1),
+                    'count': approved_in_service.count()
+                })
+    
+    service_wise_tat = sorted(service_wise_tat, key=lambda x: x['avg_days'])
     
     # 1. Project-wise statistics
     project_stats = list(all_mas.values('project__name').annotate(
@@ -164,6 +237,14 @@ def analytics_dashboard(request):
         'reviewer_stats': reviewer_stats,
         'approver_stats': approver_stats,
         'status_distribution': status_distribution,
+        # New metrics
+        'mas_processed_total': mas_processed_total,
+        'mas_processed_last_quarter': mas_processed_last_quarter,
+        'mas_processed_last_30_days': mas_processed_last_30_days,
+        'open_mas_count': open_mas_count,
+        'reviewer_summary': reviewer_summary,
+        'service_wise_open': service_wise_open,
+        'service_wise_tat': service_wise_tat,
     }
     
     return render(request, 'accounts/analytics_dashboard.html', context)

@@ -69,27 +69,59 @@
         <small class="text-muted">Last updated: {{ request.user.username }} • {{ "now"|date:"d/m/Y H:i" }}</small>
     </div>
 
-    <!-- Summary Statistics -->
+    <!-- Summary Statistics Row 1 -->
     <div class="row">
-        <div class="col-md-2 col-sm-6">
+        <div class="col-md-3 col-sm-6">
             <div class="stat-card">
                 <div class="stat-label">Total MAS</div>
                 <div class="stat-number">{{ total_mas }}</div>
                 <i class="bi bi-file-earmark-text" style="font-size: 2rem; opacity: 0.3;"></i>
             </div>
         </div>
+        <div class="col-md-3 col-sm-6">
+            <div class="stat-card success">
+                <div class="stat-label">MAS Processed (All Time)</div>
+                <div class="stat-number">{{ mas_processed_total }}</div>
+                <i class="bi bi-check-circle" style="font-size: 2rem; opacity: 0.3;"></i>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+            <div class="stat-card info">
+                <div class="stat-label">Processed Last Quarter</div>
+                <div class="stat-number">{{ mas_processed_last_quarter }}</div>
+                <i class="bi bi-calendar3" style="font-size: 2rem; opacity: 0.3;"></i>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+            <div class="stat-card warning">
+                <div class="stat-label">Processed Last 30 Days</div>
+                <div class="stat-number">{{ mas_processed_last_30_days }}</div>
+                <i class="bi bi-calendar-check" style="font-size: 2rem; opacity: 0.3;"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Statistics Row 2 -->
+    <div class="row">
+        <div class="col-md-2 col-sm-6">
+            <div class="stat-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                <div class="stat-label">Open / Under Review</div>
+                <div class="stat-number">{{ open_mas_count }}</div>
+                <i class="bi bi-clock-history" style="font-size: 2rem; opacity: 0.3;"></i>
+            </div>
+        </div>
         <div class="col-md-2 col-sm-6">
             <div class="stat-card success">
                 <div class="stat-label">Approved</div>
                 <div class="stat-number">{{ approved_mas }}</div>
-                <i class="bi bi-check-circle" style="font-size: 2rem; opacity: 0.3;"></i>
+                <i class="bi bi-check-circle-fill" style="font-size: 2rem; opacity: 0.3;"></i>
             </div>
         </div>
         <div class="col-md-2 col-sm-6">
             <div class="stat-card info">
                 <div class="stat-label">Pending</div>
                 <div class="stat-number">{{ pending_mas }}</div>
-                <i class="bi bi-clock-history" style="font-size: 2rem; opacity: 0.3;"></i>
+                <i class="bi bi-hourglass-split" style="font-size: 2rem; opacity: 0.3;"></i>
             </div>
         </div>
         <div class="col-md-2 col-sm-6">
@@ -223,6 +255,60 @@
                         No approver data available
                     </div>
                     {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- New Metrics Section -->
+    <div class="row">
+        <!-- Reviewer Summary -->
+        <div class="col-md-6">
+            <div class="chart-card">
+                <h3 class="chart-title"><i class="bi bi-person-lines-fill"></i> Reviewer Summary</h3>
+                <div style="max-height: 350px; overflow-y: auto;">
+                    <table class="table table-sm table-striped">
+                        <thead>
+                            <tr>
+                                <th>Reviewer</th>
+                                <th class="text-end">Total MAS</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in reviewer_summary %}
+                            <tr>
+                                <td><i class="bi bi-person-badge"></i> {{ item.reviewer__username }}</td>
+                                <td class="text-end"><span class="badge bg-info">{{ item.count }}</span></td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="2" class="text-center text-muted">No reviewer data</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Service Wise Open MAS -->
+        <div class="col-md-6">
+            <div class="chart-card">
+                <h3 class="chart-title"><i class="bi bi-list-check"></i> Service Wise Open MAS</h3>
+                <div class="chart-container" style="height: 300px;">
+                    <canvas id="serviceOpenChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Service Wise TAT -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="chart-card">
+                <h3 class="chart-title"><i class="bi bi-clock-history"></i> Service Wise Average Turn Around Time (Last 90 Days)</h3>
+                <div class="chart-container" style="height: 300px;">
+                    <canvas id="serviceTATChart"></canvas>
                 </div>
             </div>
         </div>
@@ -393,6 +479,91 @@
             scales: {
                 y: {
                     beginAtZero: true
+                }
+            }
+        }
+    });
+
+    // 6. Service Wise Open MAS Chart
+    const serviceOpenCtx = document.getElementById('serviceOpenChart').getContext('2d');
+    new Chart(serviceOpenCtx, {
+        type: 'bar',
+        data: {
+            labels: [{% for s in service_wise_open %}'{{ s.service__name }}'{% if not forloop.last %},{% endif %}{% endfor %}],
+            datasets: [{
+                label: 'Open MAS',
+                data: [{% for s in service_wise_open %}{{ s.count }}{% if not forloop.last %},{% endif %}{% endfor %}],
+                backgroundColor: '#f5576c',
+                borderColor: '#f5576c',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                title: {
+                    display: true,
+                    text: 'Number of Open MAS by Service'
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    }
+                }
+            }
+        }
+    });
+
+    // 7. Service Wise Turn Around Time Chart
+    const serviceTATCtx = document.getElementById('serviceTATChart').getContext('2d');
+    new Chart(serviceTATCtx, {
+        type: 'bar',
+        data: {
+            labels: [{% for s in service_wise_tat %}'{{ s.service }}'{% if not forloop.last %},{% endif %}{% endfor %}],
+            datasets: [{
+                label: 'Average TAT (Days)',
+                data: [{% for s in service_wise_tat %}{{ s.avg_days }}{% if not forloop.last %},{% endif %}{% endfor %}],
+                backgroundColor: '#667eea',
+                borderColor: '#764ba2',
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: true
+                },
+                title: {
+                    display: true,
+                    text: 'Average Processing Time by Service (Last 90 Days)'
+                },
+                tooltip: {
+                    callbacks: {
+                        afterLabel: function(context) {
+                            const index = context.dataIndex;
+                            const hours = [{% for s in service_wise_tat %}{{ s.avg_hours }}{% if not forloop.last %},{% endif %}{% endfor %}][index];
+                            const count = [{% for s in service_wise_tat %}{{ s.count }}{% if not forloop.last %},{% endif %}{% endfor %}][index];
+                            return `${hours} hours (${count} MAS processed)`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Days'
+                    }
                 }
             }
         }
